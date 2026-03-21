@@ -406,16 +406,4 @@ export default function CreativeAudit() {
     </div>
   );
 
-  function platformBadge(p: string) {
-    const cls = {
-      "meta": "bg-blue-600/20 text-blue-400 border-blue-600/30",
-      "google": "bg-red-600/20 text-red-400 border-red-600/30",
-      "tiktok": "bg-slate-600/20 text-slate-300 border-slate-600/30",
-    }[p.toLowerCase()] ?? "bg-muted text-muted-foreground border-border";
-    return <span className={cn("text-[10px] px-2 py-0.5 rounded border font-medium", cls)}>{p.charAt(0).toUpperCase() + p.slice(1)}</span>;
-  }
-
-  function scoreLabel(s: number) {
-    return s >= 80 ? "text-success" : s >= 60 ? "text-warning" : "text-destructive";
-  }
 }
