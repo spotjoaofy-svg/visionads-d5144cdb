@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -49,31 +50,33 @@ function ProtectedRoutes() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner theme="dark" />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route element={<ProtectedRoutes />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard/meta" element={<MetaDashboard />} />
-              <Route path="/dashboard/google" element={<GoogleDashboard />} />
-              <Route path="/dashboard/tiktok" element={<TikTokDashboard />} />
-              <Route path="/rankings" element={<Rankings />} />
-              <Route path="/ai-agent" element={<AIAgent />} />
-              <Route path="/creative-audit" element={<CreativeAudit />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route element={<ProtectedRoutes />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard/meta" element={<MetaDashboard />} />
+                <Route path="/dashboard/google" element={<GoogleDashboard />} />
+                <Route path="/dashboard/tiktok" element={<TikTokDashboard />} />
+                <Route path="/rankings" element={<Rankings />} />
+                <Route path="/ai-agent" element={<AIAgent />} />
+                <Route path="/creative-audit" element={<CreativeAudit />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

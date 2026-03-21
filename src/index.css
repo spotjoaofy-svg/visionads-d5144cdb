@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
@@ -63,6 +63,66 @@
     --sidebar-accent: 240 10% 14%;
     --sidebar-accent-foreground: 214 32% 97%;
     --sidebar-border: 240 10% 16%;
+    --sidebar-ring: 239 84% 67%;
+  }
+
+  /* Light mode */
+  html.light {
+    /* VisionAds Light Design System */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 20%;
+
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 13% 95%;
+    --secondary-foreground: 240 10% 20%;
+
+    --muted: 240 13% 91%;
+    --muted-foreground: 215 16% 43%;
+
+    --accent: 239 84% 67%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 59%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 240 13% 90%;
+    --input: 240 13% 95%;
+    --ring: 239 84% 67%;
+
+    /* Surface layers */
+    --surface-base: 0 0% 98%;
+    --surface-elevated: 0 0% 100%;
+    --surface-raised: 240 13% 96%;
+    --surface-overlay: 240 13% 92%;
+
+    /* Chart colors */
+    --chart-1: 239 84% 67%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 0 72% 59%;
+    --chart-5: 270 84% 65%;
+
+    --sidebar-background: 240 13% 96%;
+    --sidebar-foreground: 240 10% 20%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 13% 91%;
+    --sidebar-accent-foreground: 240 10% 20%;
+    --sidebar-border: 240 13% 90%;
     --sidebar-ring: 239 84% 67%;
   }
 }

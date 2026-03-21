@@ -6,6 +6,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAlerts } from "@/hooks/useSupabaseData";
@@ -86,6 +87,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
           )}
         </Button>
+
+        <ThemeToggle />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
