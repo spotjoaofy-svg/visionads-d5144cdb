@@ -201,10 +201,10 @@ export function useSaveCreativeAudit() {
         objective: auditData.objective,
         thumbnail_url: auditData.thumbnail_url,
         overall_score: auditData.overall_score,
-        score_breakdown: auditData.score_breakdown as unknown as import("@/integrations/supabase/types").Json,
-        strengths: auditData.strengths as unknown as import("@/integrations/supabase/types").Json,
-        improvements: auditData.improvements as unknown as import("@/integrations/supabase/types").Json,
-        variations: auditData.variations as unknown as import("@/integrations/supabase/types").Json,
+        score_breakdown: auditData.score_breakdown as Json,
+        strengths: auditData.strengths as Json,
+        improvements: auditData.improvements as Json,
+        variations: auditData.variations as Json,
         workspace_id: workspace!.id,
       };
       const { data, error } = await supabase
