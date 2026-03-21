@@ -191,11 +191,24 @@ export function useSaveCreativeAudit() {
     mutationFn: async (auditData: {
       platform: Platform; creative_name: string; creative_type?: string;
       objective?: string; thumbnail_url?: string; overall_score: number;
-      score_breakdown: unknown[]; strengths: unknown[]; improvements: unknown[]; variations: unknown[];
+      score_breakdown: Json[]; strengths: Json[]; improvements: Json[]; variations: Json[];
     }) => {
+      const insertData = {
+        platform: auditData.platform,
+        creative_name: auditData.creative_name,
+        creative_type: auditData.creative_type ?? "Image",
+        objective: auditData.objective,
+        thumbnail_url: auditData.thumbnail_url,
+        overall_score: auditData.overall_score,
+        score_breakdown: auditData.score_breakdown as unknown as import("@/integrations/supabase/types").Json,
+        strengths: auditData.strengths as unknown as import("@/integrations/supabase/types").Json,
+        improvements: auditData.improvements as unknown as import("@/integrations/supabase/types").Json,
+        variations: auditData.variations as unknown as import("@/integrations/supabase/types").Json,
+        workspace_id: workspace!.id,
+      };
       const { data, error } = await supabase
         .from("creative_audits")
-        .insert({ ...auditData, workspace_id: workspace!.id })
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
