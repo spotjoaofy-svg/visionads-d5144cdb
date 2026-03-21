@@ -281,11 +281,11 @@ export default function CreativeAudit() {
                         <span className="text-xs text-muted-foreground w-44 flex-shrink-0">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className={cn("h-full rounded-full transition-all duration-700", scoreLabel(b.score).replace("text-", "bg-"))}
+                            className={cn("h-full rounded-full transition-all duration-700", getScoreLabelClass(b.score).replace("text-", "bg-"))}
                             style={{ width: `${b.score}%` }}
                           />
                         </div>
-                        <span className={cn("text-xs font-bold metric-value w-8 text-right", scoreLabel(b.score))}>{b.score}</span>
+                        <span className={cn("text-xs font-bold metric-value w-8 text-right", getScoreLabelClass(b.score))}>{b.score}</span>
                       </div>
                     ))}
                   </div>
