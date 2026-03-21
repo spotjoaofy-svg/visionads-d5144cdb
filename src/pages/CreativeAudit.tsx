@@ -3,9 +3,20 @@ import { Upload, X, CheckCircle, AlertTriangle, Lightbulb, Download, RefreshCw, 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { auditHistory } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+
+function getPlatformBadgeClass(p: string) {
+  return ({
+    meta: "bg-blue-600/20 text-blue-400 border-blue-600/30",
+    google: "bg-red-600/20 text-red-400 border-red-600/30",
+    tiktok: "bg-slate-600/20 text-slate-300 border-slate-600/30",
+  } as Record<string, string>)[p.toLowerCase()] ?? "bg-muted text-muted-foreground border-border";
+}
+
+function getScoreLabelClass(s: number) {
+  return s >= 80 ? "text-success" : s >= 60 ? "text-warning" : "text-destructive";
+}
 
 const PLATFORM_OPTIONS = ["Meta Ads", "Google Ads", "TikTok Ads"];
 const OBJECTIVES = ["Conversão", "Tráfego", "Geração de Leads", "Awareness", "Engajamento"];
