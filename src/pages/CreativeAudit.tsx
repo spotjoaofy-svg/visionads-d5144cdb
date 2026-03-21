@@ -181,13 +181,13 @@ export default function CreativeAudit() {
 
           {/* Step 2 - Configure */}
           {step === "configure" && (
-            <div className="space-y-6">
-              <div className="flex items-start gap-4 p-4 bg-card border border-border rounded-xl">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-card border border-border rounded-xl">
                 {preview && (
-                  <img src={preview} alt="Preview" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                  <img src={preview} alt="Preview" className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{file?.name}</p>
+                  <p className="text-xs sm:text-sm font-medium text-foreground truncate">{file?.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{file ? (file.size / 1024 / 1024).toFixed(1) + " MB" : ""}</p>
                 </div>
                 <button onClick={() => { setFile(null); setPreview(null); setStep("upload"); }}
@@ -196,13 +196,13 @@ export default function CreativeAudit() {
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-foreground mb-2 block">Plataforma</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {PLATFORM_OPTIONS.map((p) => (
                       <button key={p} onClick={() => setPlatform(p)}
-                        className={cn("py-2.5 px-3 rounded-xl border text-sm font-medium transition-all",
+                        className={cn("py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl border text-xs sm:text-sm font-medium transition-all",
                           platform === p ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                         )}>
                         {p}
@@ -222,7 +222,7 @@ export default function CreativeAudit() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-sm font-medium text-foreground mb-2 block">Nome da marca (opcional)</Label>
                     <Input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Ex: Loja Exemplo"
@@ -237,7 +237,7 @@ export default function CreativeAudit() {
               </div>
 
               <Button
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm gap-2"
+                className="w-full h-11 sm:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm gap-2"
                 onClick={handleAnalyze}
               >
                 🔍 Analisar Criativo
