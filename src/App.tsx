@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
 import { DashboardLayout } from "@/components/Layout/DashboardLayout";
 
@@ -18,11 +19,38 @@ import AIAgent from "./pages/AIAgent";
 import CreativeAudit from "./pages/CreativeAudit";
 import Settings from "./pages/Settings";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes
+      retry: 1,
+    },
+  },
+});
+
+function ProtectedRoutes() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  return (
+    <AppProvider>
+      <DashboardLayout />
+    </AppProvider>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AppProvider>
+    <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner theme="dark" />
@@ -30,7 +58,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route element={<DashboardLayout />}>
+            <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard/meta" element={<MetaDashboard />} />
               <Route path="/dashboard/google" element={<GoogleDashboard />} />
@@ -44,7 +72,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </AppProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
