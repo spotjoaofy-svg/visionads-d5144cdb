@@ -10,18 +10,12 @@ import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip as ReTooltip, ResponsiveContainer, Legend,
+  Tooltip as ReTooltip, ResponsiveContainer,
 } from "recharts";
 import {
   dailyMetrics, overviewKPIs, platformSummary, activeAlerts,
 } from "@/data/mockData";
 import { cn } from "@/lib/utils";
-
-const PLATFORM_COLORS = {
-  Meta: "#1877F2",
-  Google: "#EA4335",
-  TikTok: "#9ca3af",
-};
 
 const DATE_RANGES = ["7D", "14D", "30D", "90D"] as const;
 
@@ -70,17 +64,17 @@ export default function Index() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 w-full min-w-0">
       {/* Header */}
-      <div className="animate-fade-up">
-        <h1 className="text-xl md:text-2xl font-semibold text-foreground">
+      <div className="animate-fade-up min-w-0">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground truncate">
           {greeting}, Ana 👋
         </h1>
-        <p className="text-sm text-muted-foreground mt-0.5 capitalize">{dateStr}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 capitalize truncate">{dateStr}</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <KPICard
           title="Investimento Total"
           value={formatBRL(overviewKPIs.totalSpend)}
@@ -89,7 +83,7 @@ export default function Index() {
           delay={0}
         />
         <KPICard
-          title="Conversões Totais"
+          title="Conversões"
           value={overviewKPIs.totalConversions.toLocaleString("pt-BR")}
           change={overviewKPIs.totalConversionsChange}
           icon={<Target className="w-4 h-4" />}
@@ -103,7 +97,7 @@ export default function Index() {
           delay={160}
         />
         <KPICard
-          title="Campanhas Ativas"
+          title="Camp. Ativas"
           value={overviewKPIs.activeCampaigns.toString()}
           change={overviewKPIs.activeCampaignsChange}
           icon={<Megaphone className="w-4 h-4" />}
@@ -112,38 +106,38 @@ export default function Index() {
       </div>
 
       {/* Platform Breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
         {Object.entries(platformSummary).map(([key, p]) => (
-          <div key={key} className="bg-card border border-border rounded-xl p-4 card-hover">
+          <div key={key} className="bg-card border border-border rounded-xl p-3 sm:p-4 card-hover">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                   style={{ backgroundColor: p.color }}
                 >
                   {key === "meta" ? "M" : key === "google" ? "G" : "T"}
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{p.name}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[100px]">{p.account}</div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-semibold text-foreground">{p.name}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[80px] sm:max-w-[100px]">{p.account}</div>
                 </div>
               </div>
               <StatusBadge severity="success" label="Ativo" />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1 sm:gap-2">
               <div>
-                <div className="text-xs text-muted-foreground">Spend</div>
-                <div className="metric-value text-sm text-foreground">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Spend</div>
+                <div className="metric-value text-xs sm:text-sm text-foreground">
                   R$ {(p.spend / 1000).toFixed(1)}k
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">CTR</div>
-                <div className="metric-value text-sm text-foreground">{p.ctr}%</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">CTR</div>
+                <div className="metric-value text-xs sm:text-sm text-foreground">{p.ctr}%</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">ROAS</div>
-                <div className="metric-value text-sm text-foreground">{p.roas}x</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">ROAS</div>
+                <div className="metric-value text-xs sm:text-sm text-foreground">{p.roas}x</div>
               </div>
             </div>
           </div>
@@ -151,23 +145,23 @@ export default function Index() {
       </div>
 
       {/* Chart + Alerts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 animate-fade-up" style={{ animationDelay: "300ms" }}>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 animate-fade-up" style={{ animationDelay: "300ms" }}>
         {/* Chart */}
-        <div className="xl:col-span-2 bg-card border border-border rounded-xl p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="xl:col-span-2 bg-card border border-border rounded-xl p-3 sm:p-4 min-w-0">
+          <div className="flex flex-col gap-3 mb-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Investimento vs ROAS</h2>
               <p className="text-xs text-muted-foreground">Últimos {rangeDays} dias</p>
             </div>
+            {/* Range + Platform filters */}
             <div className="flex flex-wrap gap-2">
-              {/* Range */}
               <div className="flex bg-muted rounded-lg p-0.5 gap-0.5">
                 {DATE_RANGES.map((r) => (
                   <button
                     key={r}
                     onClick={() => setRange(r)}
                     className={cn(
-                      "text-xs px-2.5 py-1 rounded-md transition-all font-medium",
+                      "text-xs px-2 py-1 rounded-md transition-all font-medium",
                       range === r
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground"
@@ -177,8 +171,7 @@ export default function Index() {
                   </button>
                 ))}
               </div>
-              {/* Platform filter */}
-              <div className="flex bg-muted rounded-lg p-0.5 gap-0.5">
+              <div className="flex bg-muted rounded-lg p-0.5 gap-0.5 flex-wrap">
                 {["all", "meta", "google", "tiktok"].map((p) => (
                   <button
                     key={p}
@@ -197,29 +190,31 @@ export default function Index() {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 10%, 20%)" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 10, fill: "hsl(215, 16%, 57%)" }}
+                tick={{ fontSize: 9, fill: "hsl(215, 16%, 57%)" }}
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fontSize: 10, fill: "hsl(215, 16%, 57%)" }}
+                tick={{ fontSize: 9, fill: "hsl(215, 16%, 57%)" }}
                 tickLine={false}
                 axisLine={false}
+                width={40}
                 tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 10, fill: "hsl(215, 16%, 57%)" }}
+                tick={{ fontSize: 9, fill: "hsl(215, 16%, 57%)" }}
                 tickLine={false}
                 axisLine={false}
+                width={30}
                 tickFormatter={(v) => `${v}x`}
               />
               <ReTooltip contentStyle={tooltipStyle} />
@@ -243,19 +238,19 @@ export default function Index() {
         </div>
 
         {/* Alerts */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-sm font-semibold text-foreground">Alertas Ativos</h2>
             <Badge variant="secondary" className="text-xs bg-destructive/15 text-destructive border-0">
               {activeAlerts.length} novos
             </Badge>
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {activeAlerts.map((alert) => (
               <div
                 key={alert.id}
                 className={cn(
-                  "flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:border-primary/30",
+                  "flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border transition-all cursor-pointer hover:border-primary/30",
                   alert.severity === "danger" && "border-destructive/20 bg-destructive/5",
                   alert.severity === "warning" && "border-warning/20 bg-warning/5",
                   alert.severity === "success" && "border-success/20 bg-success/5"
@@ -267,9 +262,9 @@ export default function Index() {
                   {alert.severity === "success" && <CheckCircle className="w-4 h-4 text-success" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-foreground">{alert.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{alert.description}</div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="text-xs font-semibold text-foreground leading-snug">{alert.title}</div>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">{alert.description}</div>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Clock className="w-2.5 h-2.5" /> {alert.time}
                     </span>
