@@ -2,8 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/context/AppContext";
 
+type Platform = "meta" | "google" | "tiktok";
+type CampaignStatus = "active" | "paused" | "ended";
+
 // ─── Campaigns ────────────────────────────────────────────────────────────────
-export function useCampaigns(platform?: string) {
+export function useCampaigns(platform?: Platform) {
   const { workspace } = useApp();
   return useQuery({
     queryKey: ["campaigns", workspace?.id, platform],
@@ -21,7 +24,7 @@ export function useCampaigns(platform?: string) {
 export function useUpdateCampaignStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: CampaignStatus }) => {
       const { error } = await supabase.from("campaigns").update({ status }).eq("id", id);
       if (error) throw error;
     },
@@ -33,7 +36,13 @@ export function useCreateCampaign() {
   const qc = useQueryClient();
   const { workspace } = useApp();
   return useMutation({
-    mutationFn: async (data: Record<string, unknown>) => {
+    mutationFn: async (data: {
+      platform: Platform; name: string; objective?: string;
+      status?: CampaignStatus; daily_budget?: number;
+      total_spend?: number; impressions?: number; clicks?: number;
+      ctr?: number; cpc?: number; cpl?: number; cpm?: number;
+      roas?: number; conversions?: number; ai_score?: number;
+    }) => {
       const { error } = await supabase.from("campaigns").insert({ ...data, workspace_id: workspace!.id });
       if (error) throw error;
     },
@@ -53,7 +62,7 @@ export function useDeleteCampaign() {
 }
 
 // ─── Daily Metrics ────────────────────────────────────────────────────────────
-export function useDailyMetrics(days = 30, platform?: string) {
+export function useDailyMetrics(days = 30, platform?: Platform) {
   const { workspace } = useApp();
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -146,7 +155,10 @@ export function useCreatives(platform?: string) {
         .select("*")
         .eq("workspace_id", workspace!.id)
         .order("ai_score", { ascending: false });
-      if (platform && platform !== "all") q = q.eq("platform", platform.toLowerCase());
+      if (platform && platform !== "Todos") {
+        const p = platform.toLowerCase() as Platform;
+        q = q.eq("platform", p);
+      }
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
@@ -176,7 +188,11 @@ export function useSaveCreativeAudit() {
   const qc = useQueryClient();
   const { workspace } = useApp();
   return useMutation({
-    mutationFn: async (auditData: Record<string, unknown>) => {
+    mutationFn: async (auditData: {
+      platform: Platform; creative_name: string; creative_type?: string;
+      objective?: string; thumbnail_url?: string; overall_score: number;
+      score_breakdown: unknown[]; strengths: unknown[]; improvements: unknown[]; variations: unknown[];
+    }) => {
       const { data, error } = await supabase
         .from("creative_audits")
         .insert({ ...auditData, workspace_id: workspace!.id })
@@ -209,7 +225,7 @@ export function useWorkspaceMembers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workspace_members")
-        .select("*, profiles(full_name, avatar_url)")
+        .select("*")
         .eq("workspace_id", workspace!.id);
       if (error) throw error;
       return data ?? [];
@@ -222,9 +238,11 @@ export function useInviteMember() {
   const { workspace } = useApp();
   return useMutation({
     mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
       const { error } = await supabase.from("workspace_members").insert({
         workspace_id: workspace!.id,
-        user_id: (await supabase.auth.getUser()).data.user!.id,
+        user_id: user.id,
         invited_email: email,
         role: role.toLowerCase() as "admin" | "editor" | "viewer",
       });
@@ -246,7 +264,7 @@ export function useRemoveMember() {
 }
 
 // ─── Ad Accounts ──────────────────────────────────────────────────────────────
-export function useAdAccounts(platform?: string) {
+export function useAdAccounts(platform?: Platform) {
   const { workspace } = useApp();
   return useQuery({
     queryKey: ["ad_accounts", workspace?.id, platform],
@@ -275,7 +293,6 @@ export function useDeleteAdAccount() {
 // ─── AI Chat Messages ─────────────────────────────────────────────────────────
 export function useChatMessages() {
   const { workspace } = useApp();
-  const { user } = { user: null } as { user: null }; // will use auth context in component
   return useQuery({
     queryKey: ["chat_messages", workspace?.id],
     enabled: !!workspace,
