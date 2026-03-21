@@ -19,42 +19,42 @@ export function KPICard({ title, value, change, icon, className, delay = 0 }: KP
   return (
     <div
       className={cn(
-        "relative bg-card border border-border rounded-xl p-3 sm:p-4 card-hover animate-fade-up overflow-hidden min-w-0",
+        "relative bg-card border border-border rounded-xl p-4 card-hover animate-fade-up overflow-hidden",
         className
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="flex items-start justify-between gap-1.5 min-w-0">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate mb-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate mb-1">
             {title}
           </p>
-          <p className="metric-value text-base sm:text-xl md:text-2xl text-foreground leading-tight truncate">{value}</p>
+          <p className="metric-value text-2xl text-foreground leading-tight">{value}</p>
         </div>
         {icon && (
-          <div className="flex-shrink-0 w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-muted flex items-center justify-center text-primary">
+          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary">
             {icon}
           </div>
         )}
       </div>
 
-      <div className="mt-2 sm:mt-3 flex items-center justify-between gap-1">
+      <div className="mt-3 flex items-center justify-between gap-2">
         {change !== undefined && (
           <div
             className={cn(
-              "flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs font-medium min-w-0",
+              "flex items-center gap-1 text-xs font-medium",
               isPositive ? "text-success" : "text-destructive"
             )}
           >
             {isPositive ? (
-              <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
+              <ArrowUpRight className="w-3 h-3" />
             ) : (
-              <ArrowDownRight className="w-3 h-3 flex-shrink-0" />
+              <ArrowDownRight className="w-3 h-3" />
             )}
-            <span className="truncate">{Math.abs(change).toFixed(1)}%</span>
+            {Math.abs(change).toFixed(1)}% vs período anterior
           </div>
         )}
-        <div className="h-7 sm:h-8 w-14 sm:w-20 flex-shrink-0 ml-auto">
+        <div className="h-8 w-20 flex-shrink-0 ml-auto">
           <SparklineChart data={sparkData} positive={isPositive} />
         </div>
       </div>
