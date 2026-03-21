@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +12,7 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -30,9 +30,10 @@ const navItems = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onMobileClose?: () => void;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps) {
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -49,7 +50,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center h-14 px-4 border-b border-sidebar-border flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary-foreground fill-current" />
           </div>
@@ -59,6 +60,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </span>
           )}
         </div>
+        {/* Mobile close button */}
+        {!collapsed && onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            className="lg:hidden flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -70,6 +80,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <NavLink
                 to={item.path}
                 end={item.path === "/"}
+                onClick={onMobileClose}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 group",
                   active
@@ -108,8 +119,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="p-3 border-t border-sidebar-border flex-shrink-0">
+      {/* Collapse toggle — desktop only */}
+      <div className="p-3 border-t border-sidebar-border flex-shrink-0 hidden lg:block">
         <button
           onClick={onToggle}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all text-sm"
