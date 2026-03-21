@@ -277,8 +277,8 @@ export default function CreativeAudit() {
                   <div className="flex-1 w-full space-y-2">
                     <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento do Score</h3>
                     {MOCK_RESULT.breakdown.map((b) => (
-                      <div key={b.label} className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground w-44 flex-shrink-0">{b.label}</span>
+                      <div key={b.label} className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-xs text-muted-foreground w-28 sm:w-44 flex-shrink-0 leading-tight">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className={cn("h-full rounded-full transition-all duration-700", getScoreLabelClass(b.score).replace("text-", "bg-"))}
