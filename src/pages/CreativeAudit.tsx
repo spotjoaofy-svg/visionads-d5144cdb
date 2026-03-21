@@ -385,10 +385,10 @@ export default function CreativeAudit() {
                         <span className="text-foreground truncate max-w-[140px]">{a.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">{platformBadge(a.platform)}</td>
+                    <td className="px-4 py-3"><span className={cn("text-[10px] px-2 py-0.5 rounded border font-medium", getPlatformBadgeClass(a.platform))}>{a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}</span></td>
                     <td className="px-4 py-3 text-muted-foreground">{a.type}</td>
                     <td className="px-4 py-3">
-                      <span className={cn("font-bold metric-value text-sm", scoreLabel(a.score))}>{a.score}</span>
+                      <span className={cn("font-bold metric-value text-sm", getScoreLabelClass(a.score))}>{a.score}</span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{a.objective}</td>
                     <td className="px-4 py-3">
