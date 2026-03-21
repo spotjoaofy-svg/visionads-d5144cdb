@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,49 +14,64 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password.trim()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) throw error;
+        toast({ title: "Conta criada!", description: "Verifique seu e-mail para confirmar." });
+        navigate("/onboarding");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate("/");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao autenticar";
+      toast({ title: "Erro", description: msg, variant: "destructive" });
+    } finally {
       setLoading(false);
-      navigate("/");
-    }, 1200);
+    }
   };
 
-  const handleGoogle = () => {
+  const handleGoogle = async () => {
     setLoading(true);
-    setTimeout(() => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/` },
+    });
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
       setLoading(false);
-      navigate("/onboarding");
-    }, 1000);
+    }
   };
 
   return (
     <div className="min-h-screen gradient-mesh flex items-center justify-center p-4">
-      {/* Background particles effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full opacity-10 animate-pulse"
+          <div key={i} className="absolute rounded-full opacity-10 animate-pulse"
             style={{
-              width: `${80 + i * 40}px`,
-              height: `${80 + i * 40}px`,
-              background: `hsl(239, 84%, 67%, ${0.1 + i * 0.05})`,
-              left: `${10 + i * 15}%`,
-              top: `${10 + (i % 3) * 30}%`,
-              animationDelay: `${i * 0.5}s`,
-              animationDuration: `${3 + i}s`,
+              width: `${80 + i * 40}px`, height: `${80 + i * 40}px`,
+              background: `hsl(239, 84%, 67%)`,
+              left: `${10 + i * 15}%`, top: `${10 + (i % 3) * 30}%`,
+              animationDelay: `${i * 0.5}s`, animationDuration: `${3 + i}s`,
             }}
           />
         ))}
       </div>
 
       <div className="relative w-full max-w-sm animate-fade-up">
-        {/* Card */}
         <div className="bg-card border border-border rounded-2xl p-8 shadow-2xl">
-          {/* Logo */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
               <Zap className="w-6 h-6 text-primary-foreground fill-current" />
@@ -62,12 +79,11 @@ export default function Login() {
             <div className="text-center">
               <h1 className="text-2xl font-bold text-foreground tracking-tight">AdMind</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Gestão inteligente de tráfego pago
+                {mode === "signin" ? "Gestão inteligente de tráfego pago" : "Criar nova conta"}
               </p>
             </div>
           </div>
 
-          {/* Google Button */}
           <Button
             variant="outline"
             className="w-full gap-3 h-11 border-border hover:bg-muted font-medium"
@@ -83,56 +99,38 @@ export default function Login() {
             Entrar com Google
           </Button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <Separator className="flex-1 bg-border" />
             <span className="text-xs text-muted-foreground font-medium">ou</span>
             <Separator className="flex-1 bg-border" />
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                E-mail
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com.br"
-                value={email}
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">E-mail</Label>
+              <Input id="email" type="email" placeholder="seu@email.com.br" value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-muted border-border h-11 text-foreground placeholder:text-muted-foreground focus:border-primary"
                 required
               />
             </div>
-
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                Senha
-              </Label>
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">Senha</Label>
               <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
+                <Input id="password" type={showPassword ? "text" : "password"}
+                  placeholder="••••••••" value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-muted border-border h-11 text-foreground placeholder:text-muted-foreground focus:border-primary pr-10"
-                  required
+                  required minLength={6}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
+                <button type="button" onClick={() => setShowPassword(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
-
-            <Button
-              type="submit"
+            <Button type="submit"
               className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
               disabled={loading}
             >
@@ -142,22 +140,21 @@ export default function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Entrando...
+                  {mode === "signin" ? "Entrando..." : "Criando conta..."}
                 </span>
               ) : (
-                "Entrar"
+                mode === "signin" ? "Entrar" : "Criar conta"
               )}
             </Button>
           </form>
 
-          {/* Footer */}
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Não tem uma conta?{" "}
+            {mode === "signin" ? "Não tem uma conta? " : "Já tem uma conta? "}
             <button
-              onClick={() => navigate("/onboarding")}
+              onClick={() => setMode(m => m === "signin" ? "signup" : "signin")}
               className="text-primary hover:underline font-medium"
             >
-              Criar conta
+              {mode === "signin" ? "Criar conta" : "Entrar"}
             </button>
           </p>
         </div>
