@@ -125,18 +125,18 @@ export default function CreativeAudit() {
 
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-screen-2xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 w-full min-w-0">
       {/* Header */}
       <div className="animate-fade-up">
-        <h1 className="text-xl font-semibold text-foreground">Auditoria de Criativos</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Análise com IA para otimizar sua performance</p>
+        <h1 className="text-lg sm:text-xl font-semibold text-foreground">Auditoria de Criativos</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Análise com IA para otimizar sua performance</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit animate-fade-up" style={{ animationDelay: "80ms" }}>
         {([["new", "Nova Auditoria"], ["history", "Histórico"]] as const).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)}
-            className={cn("text-sm px-4 py-1.5 rounded-md transition-all font-medium",
+            className={cn("text-xs sm:text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all font-medium whitespace-nowrap",
               tab === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}>
             {label}
@@ -146,7 +146,7 @@ export default function CreativeAudit() {
 
       {/* NEW AUDIT */}
       {tab === "new" && (
-        <div className="max-w-3xl animate-fade-up" style={{ animationDelay: "120ms" }}>
+        <div className="w-full max-w-3xl animate-fade-up" style={{ animationDelay: "120ms" }}>
           {/* Step 1 - Upload */}
           {step === "upload" && (
             <div
@@ -154,7 +154,7 @@ export default function CreativeAudit() {
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               className={cn(
-                "border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer",
+                "border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer",
                 isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/20"
               )}
               onClick={() => document.getElementById("file-input")?.click()}
@@ -167,12 +167,12 @@ export default function CreativeAudit() {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
               />
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                  <Upload className="w-7 h-7 text-muted-foreground" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-muted flex items-center justify-center">
+                  <Upload className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-base font-medium text-foreground">Arraste sua imagem ou vídeo aqui</p>
-                  <p className="text-sm text-muted-foreground mt-1">ou clique para selecionar</p>
+                  <p className="text-sm sm:text-base font-medium text-foreground">Arraste sua imagem ou vídeo aqui</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">ou clique para selecionar</p>
                   <p className="text-xs text-muted-foreground mt-2">JPG, PNG, GIF, MP4, MOV • Máx. 500MB</p>
                 </div>
               </div>
@@ -181,13 +181,13 @@ export default function CreativeAudit() {
 
           {/* Step 2 - Configure */}
           {step === "configure" && (
-            <div className="space-y-6">
-              <div className="flex items-start gap-4 p-4 bg-card border border-border rounded-xl">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-card border border-border rounded-xl">
                 {preview && (
-                  <img src={preview} alt="Preview" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                  <img src={preview} alt="Preview" className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{file?.name}</p>
+                  <p className="text-xs sm:text-sm font-medium text-foreground truncate">{file?.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{file ? (file.size / 1024 / 1024).toFixed(1) + " MB" : ""}</p>
                 </div>
                 <button onClick={() => { setFile(null); setPreview(null); setStep("upload"); }}
@@ -196,13 +196,13 @@ export default function CreativeAudit() {
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-foreground mb-2 block">Plataforma</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {PLATFORM_OPTIONS.map((p) => (
                       <button key={p} onClick={() => setPlatform(p)}
-                        className={cn("py-2.5 px-3 rounded-xl border text-sm font-medium transition-all",
+                        className={cn("py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl border text-xs sm:text-sm font-medium transition-all",
                           platform === p ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                         )}>
                         {p}
@@ -222,7 +222,7 @@ export default function CreativeAudit() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-sm font-medium text-foreground mb-2 block">Nome da marca (opcional)</Label>
                     <Input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Ex: Loja Exemplo"
@@ -237,7 +237,7 @@ export default function CreativeAudit() {
               </div>
 
               <Button
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm gap-2"
+                className="w-full h-11 sm:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm gap-2"
                 onClick={handleAnalyze}
               >
                 🔍 Analisar Criativo
@@ -277,8 +277,8 @@ export default function CreativeAudit() {
                   <div className="flex-1 w-full space-y-2">
                     <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento do Score</h3>
                     {MOCK_RESULT.breakdown.map((b) => (
-                      <div key={b.label} className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground w-44 flex-shrink-0">{b.label}</span>
+                      <div key={b.label} className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-xs text-muted-foreground w-28 sm:w-44 flex-shrink-0 leading-tight">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className={cn("h-full rounded-full transition-all duration-700", getScoreLabelClass(b.score).replace("text-", "bg-"))}
