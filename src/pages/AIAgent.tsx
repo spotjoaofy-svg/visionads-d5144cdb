@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, Bot, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, Paperclip, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { suggestedQuestions, overviewKPIs, platformSummary } from "@/data/mockData";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,6 @@ export default function AIAgent() {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [leftOpen, setLeftOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,7 +52,6 @@ export default function AIAgent() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
-    setLeftOpen(false);
     setTimeout(() => {
       const aiMsg: Message = { id: (Date.now() + 1).toString(), role: "ai", content: getResponse(text), time: formatTime() };
       setMessages((prev) => [...prev, aiMsg]);
@@ -66,6 +64,7 @@ export default function AIAgent() {
     sendMessage(input);
   };
 
+  // Render markdown-like formatting
   function renderContent(text: string) {
     const lines = text.split("\n");
     return lines.map((line, i) => {
@@ -86,176 +85,157 @@ export default function AIAgent() {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
-      {/* Mobile context panel toggle */}
-      <button
-        className="lg:hidden flex items-center justify-between px-4 py-2.5 bg-surface-elevated border-b border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
-        onClick={() => setLeftOpen((v) => !v)}
-      >
-        <span className="font-medium text-foreground">Contexto & Sugestões</span>
-        {leftOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel */}
-        <div
-          className={cn(
-            "border-r border-border bg-surface-elevated overflow-y-auto transition-all duration-300",
-            "lg:w-72 lg:flex-shrink-0 lg:block",
-            leftOpen
-              ? "absolute inset-x-0 top-[calc(3.5rem+2.5rem)] z-20 max-h-[50vh] overflow-y-auto shadow-xl border-b"
-              : "hidden lg:block"
-          )}
-        >
-          <div className="p-4 space-y-4">
-            {/* Account Context */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Contexto das Contas
-              </h3>
-              <div className="space-y-1.5">
-                {Object.entries(platformSummary).map(([key, p]) => (
-                  <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                        style={{ backgroundColor: p.color }}
-                      >
-                        {key[0].toUpperCase()}
-                      </div>
-                      <span className="text-xs text-foreground truncate">{p.name}</span>
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col lg:flex-row overflow-hidden">
+      {/* Left Panel */}
+      <div className="lg:w-72 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-surface-elevated overflow-y-auto">
+        <div className="p-4 space-y-4">
+          {/* Account Context */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Contexto das Contas
+            </h3>
+            <div className="space-y-2">
+              {Object.entries(platformSummary).map(([key, p]) => (
+                <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                      style={{ backgroundColor: p.color }}
+                    >
+                      {key[0].toUpperCase()}
                     </div>
-                    <span className="text-xs text-success ml-1 flex-shrink-0">●</span>
+                    <span className="text-xs text-foreground truncate">{p.name}</span>
                   </div>
-                ))}
-              </div>
+                  <span className="text-xs text-success ml-1">●</span>
+                </div>
+              ))}
             </div>
+          </div>
 
-            {/* Quick Stats */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Resumo do Mês
-              </h3>
-              <div className="space-y-2">
-                {[
-                  { label: "Investimento total", value: "R$ 284,8k" },
-                  { label: "Campanhas ativas", value: "23" },
-                  { label: "Melhor ROAS", value: "9.21x (Google)" },
-                ].map((s) => (
-                  <div key={s.label} className="flex justify-between items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{s.label}</span>
-                    <span className="text-xs font-semibold metric-value text-foreground whitespace-nowrap">{s.value}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Quick Stats */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Resumo do Mês
+            </h3>
+            <div className="space-y-2">
+              {[
+                { label: "Investimento total", value: "R$ 284,8k" },
+                { label: "Campanhas ativas", value: "23" },
+                { label: "Melhor ROAS", value: "9.21x (Google)" },
+              ].map((s) => (
+                <div key={s.label} className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">{s.label}</span>
+                  <span className="text-xs font-semibold metric-value text-foreground">{s.value}</span>
+                </div>
+              ))}
             </div>
+          </div>
 
-            {/* Suggested Questions */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Perguntas Sugeridas
-              </h3>
-              <div className="space-y-1.5">
-                {suggestedQuestions.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => sendMessage(q)}
-                    disabled={isTyping}
-                    className="w-full text-left text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/60 border border-border hover:border-primary/30 px-3 py-2 rounded-lg transition-all leading-relaxed disabled:opacity-50"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
+          {/* Suggested Questions */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Perguntas Sugeridas
+            </h3>
+            <div className="space-y-1.5">
+              {suggestedQuestions.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => sendMessage(q)}
+                  disabled={isTyping}
+                  className="w-full text-left text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/60 border border-border hover:border-primary/30 px-3 py-2 rounded-lg transition-all leading-relaxed disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
-            {messages.map((msg) => (
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={cn("flex gap-3 animate-fade-up", msg.role === "user" && "flex-row-reverse")}
+            >
+              {/* Avatar */}
               <div
-                key={msg.id}
-                className={cn("flex gap-2 sm:gap-3 animate-fade-up", msg.role === "user" && "flex-row-reverse")}
+                className={cn(
+                  "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+                  msg.role === "ai" ? "bg-primary/20" : "bg-muted"
+                )}
               >
-                {/* Avatar */}
+                {msg.role === "ai" ? (
+                  <Bot className="w-3.5 h-3.5 text-primary" />
+                ) : (
+                  <User className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+              </div>
+
+              {/* Bubble */}
+              <div className={cn("max-w-[75%] space-y-1", msg.role === "user" && "items-end flex flex-col")}>
                 <div
                   className={cn(
-                    "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
-                    msg.role === "ai" ? "bg-primary/20" : "bg-muted"
+                    "px-4 py-3 rounded-2xl text-sm leading-relaxed",
+                    msg.role === "ai" ? "chat-bubble-ai rounded-tl-sm" : "chat-bubble-user rounded-tr-sm"
                   )}
                 >
-                  {msg.role === "ai" ? (
-                    <Bot className="w-3.5 h-3.5 text-primary" />
-                  ) : (
-                    <User className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
+                  {renderContent(msg.content)}
                 </div>
-
-                {/* Bubble */}
-                <div className={cn("max-w-[85%] sm:max-w-[75%] space-y-1", msg.role === "user" && "items-end flex flex-col")}>
-                  <div
-                    className={cn(
-                      "px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm leading-relaxed",
-                      msg.role === "ai" ? "chat-bubble-ai rounded-tl-sm" : "chat-bubble-user rounded-tr-sm"
-                    )}
-                  >
-                    {renderContent(msg.content)}
-                  </div>
-                  <span className="text-[10px] text-muted-foreground px-1">{msg.time}</span>
-                </div>
+                <span className="text-[10px] text-muted-foreground px-1">{msg.time}</span>
               </div>
-            ))}
+            </div>
+          ))}
 
-            {/* Typing indicator */}
-            {isTyping && (
-              <div className="flex gap-2 sm:gap-3 animate-fade-up">
-                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Bot className="w-3.5 h-3.5 text-primary" />
-                </div>
-                <div className="chat-bubble-ai px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1.5">
-                  <div className="typing-dot" />
-                  <div className="typing-dot" />
-                  <div className="typing-dot" />
-                </div>
+          {/* Typing indicator */}
+          {isTyping && (
+            <div className="flex gap-3 animate-fade-up">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+                <Bot className="w-3.5 h-3.5 text-primary" />
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              <div className="chat-bubble-ai px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1.5">
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-          {/* Input */}
-          <div className="border-t border-border p-3 sm:p-4 bg-surface-elevated flex-shrink-0">
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-muted border border-border rounded-xl px-3 py-2 focus-within:border-primary/50 transition-colors min-w-0">
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Pergunte sobre suas campanhas..."
-                  className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
-                  disabled={isTyping}
-                />
-                <button
-                  type="button"
-                  className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
-                >
-                  <Paperclip className="w-4 h-4" />
-                </button>
-              </div>
-              <Button
-                type="submit"
-                size="icon"
-                className="w-9 h-9 sm:w-10 sm:h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl flex-shrink-0"
-                disabled={isTyping || !input.trim()}
+        {/* Input */}
+        <div className="border-t border-border p-4 bg-surface-elevated">
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <div className="flex-1 flex items-center gap-2 bg-muted border border-border rounded-xl px-3 py-2 focus-within:border-primary/50 transition-colors">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Pergunte sobre suas campanhas..."
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
+                disabled={isTyping}
+              />
+              <button
+                type="button"
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-            <p className="text-[10px] text-muted-foreground text-center mt-2 hidden sm:block">
-              Alimentado por dados reais das suas contas • As respostas são baseadas nos dados históricos
-            </p>
-          </div>
+                <Paperclip className="w-4 h-4" />
+              </button>
+            </div>
+            <Button
+              type="submit"
+              size="icon"
+              className="w-10 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl flex-shrink-0"
+              disabled={isTyping || !input.trim()}
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+          <p className="text-[10px] text-muted-foreground text-center mt-2">
+            Alimentado por dados reais das suas contas • As respostas são baseadas nos dados históricos
+          </p>
         </div>
       </div>
     </div>
