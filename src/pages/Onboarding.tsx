@@ -79,7 +79,7 @@ export default function Onboarding() {
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary-foreground fill-current" />
           </div>
-          <span className="font-bold text-xl text-foreground">AdMind</span>
+          <span className="font-bold text-xl text-foreground">VisionAds</span>
         </div>
 
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -253,7 +253,7 @@ export default function Onboarding() {
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-foreground">Tudo pronto! 🎉</h2>
                 <p className="text-muted-foreground mt-2 max-w-sm">
-                  Seu workspace <strong className="text-foreground">{workspaceName || "AdMind"}</strong> foi criado com sucesso.
+                  Seu workspace <strong className="text-foreground">{workspaceName || "VisionAds"}</strong> foi criado com sucesso.
                   Vamos começar a otimizar suas campanhas?
                 </p>
               </div>

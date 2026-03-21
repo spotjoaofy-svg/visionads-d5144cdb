@@ -77,7 +77,7 @@ export default function Login() {
               <Zap className="w-6 h-6 text-primary-foreground fill-current" />
             </div>
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">AdMind</h1>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">VisionAds</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {mode === "signin" ? "Gestão inteligente de tráfego pago" : "Criar nova conta"}
               </p>

@@ -56,7 +56,7 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps) {
           </div>
           {!collapsed && (
             <span className="font-bold text-lg text-foreground tracking-tight truncate">
-              AdMind
+              VisionAds
             </span>
           )}
         </div>
