@@ -185,6 +185,19 @@ export default function Login() {
               {mode === "signin" ? "Criar conta" : "Entrar"}
             </button>
           </p>
+
+          <div className="mt-6 pt-6 border-t border-border">
+            <p className="text-center text-xs text-muted-foreground mb-3">
+              Precisa configurar o Facebook OAuth?
+            </p>
+            <Button
+              variant="secondary"
+              className="w-full text-sm"
+              onClick={() => navigate("/setup-credentials")}
+            >
+              Ir para Configurações de Credenciais
+            </Button>
+          </div>
         </div>
       </div>
     </div>

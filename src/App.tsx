@@ -27,6 +27,7 @@ import LeadsPage from "./pages/LeadsPage";
 import EngagementPage from "./pages/EngagementPage";
 import ThreadsPage from "./pages/ThreadsPage";
 import PageAdsPage from "./pages/PageAdsPage";
+import CredentialsSetup from "./pages/CredentialsSetup";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +69,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/setup-credentials" element={<CredentialsSetup />} />
               <Route element={<ProtectedRoutes />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard/meta" element={<MetaDashboard />} />
