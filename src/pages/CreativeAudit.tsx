@@ -125,18 +125,18 @@ export default function CreativeAudit() {
 
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-screen-2xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 w-full min-w-0">
       {/* Header */}
       <div className="animate-fade-up">
-        <h1 className="text-xl font-semibold text-foreground">Auditoria de Criativos</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Análise com IA para otimizar sua performance</p>
+        <h1 className="text-lg sm:text-xl font-semibold text-foreground">Auditoria de Criativos</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Análise com IA para otimizar sua performance</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit animate-fade-up" style={{ animationDelay: "80ms" }}>
         {([["new", "Nova Auditoria"], ["history", "Histórico"]] as const).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)}
-            className={cn("text-sm px-4 py-1.5 rounded-md transition-all font-medium",
+            className={cn("text-xs sm:text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all font-medium whitespace-nowrap",
               tab === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}>
             {label}
@@ -146,7 +146,7 @@ export default function CreativeAudit() {
 
       {/* NEW AUDIT */}
       {tab === "new" && (
-        <div className="max-w-3xl animate-fade-up" style={{ animationDelay: "120ms" }}>
+        <div className="w-full max-w-3xl animate-fade-up" style={{ animationDelay: "120ms" }}>
           {/* Step 1 - Upload */}
           {step === "upload" && (
             <div
@@ -154,7 +154,7 @@ export default function CreativeAudit() {
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               className={cn(
-                "border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer",
+                "border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer",
                 isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/20"
               )}
               onClick={() => document.getElementById("file-input")?.click()}
@@ -167,12 +167,12 @@ export default function CreativeAudit() {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
               />
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                  <Upload className="w-7 h-7 text-muted-foreground" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-muted flex items-center justify-center">
+                  <Upload className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-base font-medium text-foreground">Arraste sua imagem ou vídeo aqui</p>
-                  <p className="text-sm text-muted-foreground mt-1">ou clique para selecionar</p>
+                  <p className="text-sm sm:text-base font-medium text-foreground">Arraste sua imagem ou vídeo aqui</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">ou clique para selecionar</p>
                   <p className="text-xs text-muted-foreground mt-2">JPG, PNG, GIF, MP4, MOV • Máx. 500MB</p>
                 </div>
               </div>
