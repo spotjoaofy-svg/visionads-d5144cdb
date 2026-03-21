@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/context/AppContext";
+import type { Json } from "@/integrations/supabase/types";
 
 type Platform = "meta" | "google" | "tiktok";
 type CampaignStatus = "active" | "paused" | "ended";
