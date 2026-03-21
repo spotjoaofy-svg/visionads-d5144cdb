@@ -3,24 +3,48 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import { AppProvider } from "@/context/AppContext";
+import { DashboardLayout } from "@/components/Layout/DashboardLayout";
+
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
+import MetaDashboard from "./pages/MetaDashboard";
+import GoogleDashboard from "./pages/GoogleDashboard";
+import TikTokDashboard from "./pages/TikTokDashboard";
+import Rankings from "./pages/Rankings";
+import AIAgent from "./pages/AIAgent";
+import CreativeAudit from "./pages/CreativeAudit";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AppProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner theme="dark" />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard/meta" element={<MetaDashboard />} />
+              <Route path="/dashboard/google" element={<GoogleDashboard />} />
+              <Route path="/dashboard/tiktok" element={<TikTokDashboard />} />
+              <Route path="/rankings" element={<Rankings />} />
+              <Route path="/ai-agent" element={<AIAgent />} />
+              <Route path="/creative-audit" element={<CreativeAudit />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppProvider>
   </QueryClientProvider>
 );
 
