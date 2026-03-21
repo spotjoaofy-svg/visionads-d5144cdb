@@ -19,6 +19,14 @@ import Rankings from "./pages/Rankings";
 import AIAgent from "./pages/AIAgent";
 import CreativeAudit from "./pages/CreativeAudit";
 import Settings from "./pages/Settings";
+import Permissions from "./pages/Permissions";
+import MetaAdsPage from "./pages/MetaAdsPage";
+import CatalogsPage from "./pages/CatalogsPage";
+import PagesManagementPage from "./pages/PagesManagementPage";
+import LeadsPage from "./pages/LeadsPage";
+import EngagementPage from "./pages/EngagementPage";
+import ThreadsPage from "./pages/ThreadsPage";
+import PageAdsPage from "./pages/PageAdsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +77,15 @@ const App = () => (
                 <Route path="/ai-agent" element={<AIAgent />} />
                 <Route path="/creative-audit" element={<CreativeAudit />} />
                 <Route path="/settings" element={<Settings />} />
+                {/* Facebook/Meta Integration Routes */}
+                <Route path="/facebook/permissions" element={<Permissions />} />
+                <Route path="/facebook/ads" element={<MetaAdsPage />} />
+                <Route path="/facebook/catalogs" element={<CatalogsPage />} />
+                <Route path="/facebook/pages" element={<PagesManagementPage />} />
+                <Route path="/facebook/leads" element={<LeadsPage />} />
+                <Route path="/facebook/engagement" element={<EngagementPage />} />
+                <Route path="/facebook/threads" element={<ThreadsPage />} />
+                <Route path="/facebook/page-ads" element={<PageAdsPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
