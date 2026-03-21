@@ -123,16 +123,6 @@ export default function CreativeAudit() {
     }, 900);
   };
 
-  const platformBadge = (p: string) => {
-    const cls = {
-      "meta": "bg-blue-600/20 text-blue-400 border-blue-600/30",
-      "google": "bg-red-600/20 text-red-400 border-red-600/30",
-      "tiktok": "bg-slate-600/20 text-slate-300 border-slate-600/30",
-    }[p.toLowerCase()] ?? "bg-muted text-muted-foreground border-border";
-    return <span className={cn("text-[10px] px-2 py-0.5 rounded border font-medium", cls)}>{p}</span>;
-  };
-
-  const scoreLabel = (s: number) => s >= 80 ? "text-success" : s >= 60 ? "text-warning" : "text-destructive";
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-screen-2xl mx-auto">
