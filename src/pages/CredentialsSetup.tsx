@@ -517,6 +517,22 @@ FACEBOOK_APP_SECRET=${credentials.facebookAppSecret}`;
                   </div>
                 </div>
 
+                {/* Database Migration Info */}
+                <Alert className="border-blue-500/50 bg-blue-500/5">
+                  <AlertCircle className="h-4 w-4 text-blue-500" />
+                  <AlertDescription className="text-blue-600 dark:text-blue-400">
+                    Caso queira migrar para um novo projeto Supabase, veja o{" "}
+                    <a
+                      href="/MIGRATION_GUIDE.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline font-semibold hover:text-blue-700"
+                    >
+                      guia de migração
+                    </a>
+                  </AlertDescription>
+                </Alert>
+
                 {/* Generate .env */}
                 <div className="space-y-3">
                   <Button
