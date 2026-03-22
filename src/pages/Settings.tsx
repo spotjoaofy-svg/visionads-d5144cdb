@@ -97,6 +97,20 @@ export default function Settings() {
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-screen-xl mx-auto">
+      {/* FB Toast notification */}
+      {fbToast && (
+        <div className={cn(
+          "fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-up",
+          fbToast.type === "success"
+            ? "bg-success/15 border border-success/30 text-success"
+            : "bg-destructive/15 border border-destructive/30 text-destructive"
+        )}>
+          {fbToast.type === "success"
+            ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+          {fbToast.msg}
+        </div>
+      )}
       {/* Header */}
       <div className="animate-fade-up">
         <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
