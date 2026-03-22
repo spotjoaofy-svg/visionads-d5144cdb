@@ -43,14 +43,56 @@ const INTEGRATIONS = [
 ];
 
 export default function Settings() {
+  const { workspace } = useApp();
   const [tab, setTab] = useState("Integrações");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Editor");
   const [rules, setRules] = useState(alertRules);
+  const [fbLoading, setFbLoading] = useState(false);
+  const [fbToast, setFbToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r));
+  };
+
+  // Handle Facebook OAuth callback params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("fb_success")) {
+      setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
+      window.history.replaceState({}, "", window.location.pathname);
+      setTab("Integrações");
+    } else if (params.get("fb_error")) {
+      setFbToast({ type: "error", msg: `Erro ao conectar: ${params.get("fb_error")}` });
+      window.history.replaceState({}, "", window.location.pathname);
+      setTab("Integrações");
+    }
+    if (fbToast) {
+      const t = setTimeout(() => setFbToast(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [fbToast]);
+
+  const handleConnectFacebook = async () => {
+    setFbLoading(true);
+    try {
+      const { data: wsData } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("name", workspace)
+        .maybeSingle();
+
+      const workspaceId = wsData?.id ?? "";
+      const { data, error } = await supabase.functions.invoke("facebook-oauth-init", {
+        body: { workspace_id: workspaceId },
+      });
+      if (error || !data?.auth_url) throw new Error(error?.message ?? "Falha ao iniciar OAuth");
+      window.location.href = data.auth_url;
+    } catch (e: any) {
+      setFbToast({ type: "error", msg: e.message });
+      setFbLoading(false);
+    }
   };
 
   return (
