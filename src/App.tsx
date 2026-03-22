@@ -17,7 +17,6 @@ import Rankings from "./pages/Rankings";
 import AIAgent from "./pages/AIAgent";
 import CreativeAudit from "./pages/CreativeAudit";
 import Settings from "./pages/Settings";
-import Integrations from "./pages/Integrations";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +30,6 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/integrations/facebook/callback" element={<Integrations />} />
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard/meta" element={<MetaDashboard />} />
@@ -41,7 +39,6 @@ const App = () => (
               <Route path="/ai-agent" element={<AIAgent />} />
               <Route path="/creative-audit" element={<CreativeAudit />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/settings/integrations" element={<Integrations />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
