@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Check, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { teamMembers, alertRules, billingPlans } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/context/AppContext";
 
 const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Cobrança", "Alertas"];
 
