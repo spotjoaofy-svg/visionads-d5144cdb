@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Check, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { teamMembers, alertRules, billingPlans } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/context/AppContext";
 
 const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Cobrança", "Alertas"];
 
@@ -41,18 +43,74 @@ const INTEGRATIONS = [
 ];
 
 export default function Settings() {
+  const { workspace } = useApp();
   const [tab, setTab] = useState("Integrações");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Editor");
   const [rules, setRules] = useState(alertRules);
+  const [fbLoading, setFbLoading] = useState(false);
+  const [fbToast, setFbToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r));
   };
 
+  // Handle Facebook OAuth callback params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("fb_success")) {
+      setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
+      window.history.replaceState({}, "", window.location.pathname);
+      setTab("Integrações");
+    } else if (params.get("fb_error")) {
+      setFbToast({ type: "error", msg: `Erro ao conectar: ${params.get("fb_error")}` });
+      window.history.replaceState({}, "", window.location.pathname);
+      setTab("Integrações");
+    }
+    if (fbToast) {
+      const t = setTimeout(() => setFbToast(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [fbToast]);
+
+  const handleConnectFacebook = async () => {
+    setFbLoading(true);
+    try {
+      const { data: wsData } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("name", workspace)
+        .maybeSingle();
+
+      const workspaceId = wsData?.id ?? "";
+      const { data, error } = await supabase.functions.invoke("facebook-oauth-init", {
+        body: { workspace_id: workspaceId },
+      });
+      if (error || !data?.auth_url) throw new Error(error?.message ?? "Falha ao iniciar OAuth");
+      window.location.href = data.auth_url;
+    } catch (e: any) {
+      setFbToast({ type: "error", msg: e.message });
+      setFbLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-screen-xl mx-auto">
+      {/* FB Toast notification */}
+      {fbToast && (
+        <div className={cn(
+          "fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-up",
+          fbToast.type === "success"
+            ? "bg-success/15 border border-success/30 text-success"
+            : "bg-destructive/15 border border-destructive/30 text-destructive"
+        )}>
+          {fbToast.type === "success"
+            ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+          {fbToast.msg}
+        </div>
+      )}
       {/* Header */}
       <div className="animate-fade-up">
         <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
@@ -116,9 +174,22 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5">
-                    <Plus className="w-3 h-3" /> Adicionar conta
-                  </Button>
+                  {platform.id === "meta" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5"
+                      onClick={handleConnectFacebook}
+                      disabled={fbLoading}
+                    >
+                      {fbLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      {fbLoading ? "Conectando…" : "Adicionar conta"}
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5" disabled>
+                      <Plus className="w-3 h-3" /> Em breve
+                    </Button>
+                  )}
                 </div>
               </div>
               {platform.accounts.length > 0 ? (
