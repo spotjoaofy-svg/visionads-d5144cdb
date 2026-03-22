@@ -174,9 +174,22 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5">
-                    <Plus className="w-3 h-3" /> Adicionar conta
-                  </Button>
+                  {platform.id === "meta" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5"
+                      onClick={handleConnectFacebook}
+                      disabled={fbLoading}
+                    >
+                      {fbLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      {fbLoading ? "Conectando…" : "Adicionar conta"}
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5" disabled>
+                      <Plus className="w-3 h-3" /> Em breve
+                    </Button>
+                  )}
                 </div>
               </div>
               {platform.accounts.length > 0 ? (
