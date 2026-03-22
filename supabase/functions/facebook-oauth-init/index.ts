@@ -11,7 +11,8 @@ serve(async (req) => {
   }
 
   const APP_ID = Deno.env.get('FACEBOOK_APP_ID');
-  const REDIRECT_URI = `https://${Deno.env.get('SUPABASE_URL')?.replace('https://', '')}/functions/v1/facebook-oauth-callback`;
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+  const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
 
   if (!APP_ID) {
     return new Response(JSON.stringify({ error: 'FACEBOOK_APP_ID not configured' }), {
@@ -20,9 +21,11 @@ serve(async (req) => {
     });
   }
 
-  // Extract workspace_id from query params to pass as state
-  const url = new URL(req.url);
-  const workspaceId = url.searchParams.get('workspace_id') ?? '';
+  let workspaceId = '';
+  try {
+    const body = await req.json();
+    workspaceId = body.workspace_id ?? '';
+  } catch (_) { /* no body */ }
 
   const state = btoa(JSON.stringify({ workspace_id: workspaceId, ts: Date.now() }));
 
