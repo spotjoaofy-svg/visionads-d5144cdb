@@ -17,6 +17,7 @@ import Rankings from "./pages/Rankings";
 import AIAgent from "./pages/AIAgent";
 import CreativeAudit from "./pages/CreativeAudit";
 import Settings from "./pages/Settings";
+import FacebookCallback from "./pages/FacebookCallback";
 
 const queryClient = new QueryClient();
 
