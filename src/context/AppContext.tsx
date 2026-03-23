@@ -18,8 +18,11 @@ interface AppContextType {
 
 const defaultDateRange: DateRange = { label: "30D", days: 30 };
 
+// Single-company mode: fixed workspace name
+const FIXED_WORKSPACE_NAME = "VisionAds";
+
 const AppContext = createContext<AppContextType>({
-  workspace: "Loja Exemplo BR",
+  workspace: FIXED_WORKSPACE_NAME,
   setWorkspace: () => {},
   dateRange: defaultDateRange,
   setDateRange: () => {},
@@ -30,7 +33,12 @@ const AppContext = createContext<AppContextType>({
 });
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [workspace, setWorkspace] = useState("Loja Exemplo BR");
+  // workspace is fixed for single-company mode
+  const workspace = FIXED_WORKSPACE_NAME;
+  const setWorkspace = (_: string) => {
+    /* no-op intentionally: app runs in single-company mode */
+  };
+
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
   const [platformFilter, setPlatformFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(true);
