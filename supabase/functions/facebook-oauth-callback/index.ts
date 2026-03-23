@@ -13,7 +13,7 @@ serve(async (req) => {
   const APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET")!;
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
   const appOrigin = "https://visionads.lovable.app";
-  const settingsUrl = `${appOrigin}/settings`;
+  const callbackUrl = `${appOrigin}/fb-callback`;
 
   if (error) {
     return Response.redirect(`${settingsUrl}?fb_error=${encodeURIComponent(error)}`, 302);
