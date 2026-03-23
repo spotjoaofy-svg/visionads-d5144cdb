@@ -1,6 +1,4 @@
-﻿/* src/hooks/useMeta.ts
-   React Query hooks wrapping the Facebook client.
-*/
+// src/hooks/useMeta.ts
 import { useQuery } from "@tanstack/react-query";
 import fb from "../integrations/meta/facebook";
 

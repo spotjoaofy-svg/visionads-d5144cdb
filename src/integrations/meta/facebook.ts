@@ -1,7 +1,4 @@
-﻿/* src/integrations/meta/facebook.ts
-   Minimal Facebook Graph API client used by the frontend.
-   Expects an access token stored in localStorage under "facebook_access_token".
-*/
+// src/integrations/meta/facebook.ts
 const API_VERSION = "v17.0";
 const GRAPH_HOST = "https://graph.facebook.com";
 
@@ -31,13 +28,9 @@ async function paginate(path: string, params: Record<string, any> = {}) {
   let json: any = await fetchGraph(path, params);
   if (Array.isArray(json.data)) collected.push(...json.data);
 
-  // follow paging.next if present
   while (json?.paging?.next) {
     const res = await fetch(json.paging.next);
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Facebook Graph API pagination error: ${res.status} ${text}`);
-    }
+    if (!res.ok) throw new Error(`Facebook pagination error: ${res.status}`);
     json = await res.json();
     if (Array.isArray(json.data)) collected.push(...json.data);
   }
@@ -58,16 +51,9 @@ export async function getInsights(nodeId: string, opts: { level?: string; since?
   const level = opts.level ?? "account";
   const fields = opts.fields ?? "impressions,clicks,spend,reach,frequency,ctr,cpc,cpm";
   const params: Record<string, string> = { fields, level };
-  if (opts.since && opts.until) {
-    params.time_range = JSON.stringify({ since: opts.since, until: opts.until });
-  }
-
+  if (opts.since && opts.until) params.time_range = JSON.stringify({ since: opts.since, until: opts.until });
   const path = nodeId.startsWith("act_") ? `${nodeId}/insights` : `act_${nodeId}/insights`;
   return paginate(path, params);
 }
 
-export default {
-  getAdAccounts,
-  getCampaigns,
-  getInsights,
-};
+export default { getAdAccounts, getCampaigns, getInsights };
