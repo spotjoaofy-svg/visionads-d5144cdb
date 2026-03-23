@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -15,10 +13,10 @@ import {
 } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 
-const LEVEL_TABS = ["Conta", "Campanhas", "Conjuntos", "Anúncios"];
-const STATUS_FILTERS = ["Todos", "Ativo", "Pausado", "Encerrado"];
-const DATE_PRESETS = ["Hoje", "7D", "14D", "30D", "Este mês"];
-const METRICS = ["Impressões", "Cliques", "Spend", "CTR", "ROAS", "CPM", "CPC", "CPL"];
+const LEVEL_TABS = ["Campanhas", "Conjuntos", "Anúncios"];
+const STATUS_FILTERS = ["Todos", "Ativo", "Pausado"];
+const DATE_PRESETS = ["7D", "14D", "30D", "Este mês"];
+const METRICS = ["Spend", "CTR", "ROAS", "Impressões", "Cliques", "CPM", "CPC"];
 const PIE_COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4"];
 
 const tooltipStyle = {
@@ -26,7 +24,7 @@ const tooltipStyle = {
   border: "1px solid hsl(240, 10%, 20%)",
   borderRadius: "8px",
   color: "hsl(214, 32%, 97%)",
-  fontSize: "12px",
+  fontSize: "11px",
 };
 
 function statusBadge(status: string) {
@@ -47,7 +45,6 @@ export default function MetaDashboard() {
     if (statusFilter === "Todos") return true;
     if (statusFilter === "Ativo") return c.status === "active";
     if (statusFilter === "Pausado") return c.status === "paused";
-    if (statusFilter === "Encerrado") return c.status === "ended";
     return true;
   });
 
@@ -60,42 +57,40 @@ export default function MetaDashboard() {
     CTR: d.metaCtr,
     ROAS: d.metaRoas,
     Impressões: d.metaImpressions / 1000,
-    Cliques: d.metaImpressions * d.metaCtr / 100,
+    Cliques: Math.round(d.metaImpressions * d.metaCtr / 100),
   }));
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-screen-2xl mx-auto">
+    <div className="p-3 md:p-6 space-y-4 max-w-screen-2xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-up">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
-            <h1 className="text-xl font-semibold text-foreground">Meta Ads</h1>
+      <div className="flex flex-col gap-3 animate-fade-up">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs font-bold">M</span>
           </div>
-          <p className="text-sm text-muted-foreground mt-0.5">Loja Exemplo BR</p>
+          <div>
+            <h1 className="text-lg md:text-xl font-semibold text-foreground">Meta Ads</h1>
+            <p className="text-[10px] text-muted-foreground">Loja Exemplo BR</p>
+          </div>
         </div>
-        <div className="sm:ml-auto flex flex-wrap gap-2">
+        {/* Date presets — scrollable on mobile */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {DATE_PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setDatePreset(p)}
+            <button key={p} onClick={() => setDatePreset(p)}
               className={cn(
-                "text-xs px-3 py-1.5 rounded-lg border transition-all",
+                "text-xs px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all flex-shrink-0",
                 datePreset === p
                   ? "bg-primary/20 border-primary/40 text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-              )}
-            >
+                  : "border-border text-muted-foreground hover:text-foreground"
+              )}>
               {p}
             </button>
           ))}
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 animate-fade-up" style={{ animationDelay: "80ms" }}>
+      {/* KPI Cards — 2 cols mobile, 3 md, 6 lg */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 animate-fade-up" style={{ animationDelay: "80ms" }}>
         {[
           { title: "Impressões", value: (metaKPIs.impressions.value / 1000000).toFixed(1) + "M", change: metaKPIs.impressions.change },
           { title: "Alcance", value: (metaKPIs.reach.value / 1000).toFixed(0) + "k", change: metaKPIs.reach.change },
@@ -109,74 +104,69 @@ export default function MetaDashboard() {
       </div>
 
       {/* Performance Chart */}
-      <div className="bg-card border border-border rounded-xl p-4 animate-fade-up" style={{ animationDelay: "160ms" }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="bg-card border border-border rounded-xl p-3 md:p-4 animate-fade-up" style={{ animationDelay: "160ms" }}>
+        <div className="flex flex-col gap-2 mb-3">
           <h2 className="text-sm font-semibold text-foreground">Desempenho ao Longo do Tempo</h2>
-          <div className="sm:ml-auto flex flex-wrap gap-1">
+          {/* Metric selector — horizontal scroll */}
+          <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
             {METRICS.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMetric(m)}
+              <button key={m} onClick={() => setMetric(m)}
                 className={cn(
-                  "text-xs px-2.5 py-1 rounded-md border transition-all",
-                  metric === m
-                    ? "bg-primary/20 border-primary/40 text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                )}
-              >
+                  "text-[11px] px-2.5 py-1 rounded-md border whitespace-nowrap transition-all flex-shrink-0",
+                  metric === m ? "bg-primary/20 border-primary/40 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                )}>
                 {m}
               </button>
             ))}
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 10%, 20%)" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 10, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} width={36} />
             <ReTooltip contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey={metric === "Impressões" ? "Impressões" : metric} stroke="#6366F1" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey={metric} stroke="#6366F1" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Campaigns Table */}
+      {/* Campaign table — card list on mobile, table on desktop */}
       <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up" style={{ animationDelay: "200ms" }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border">
-          <div className="flex gap-1">
+        {/* Toolbar */}
+        <div className="flex flex-col gap-2 p-3 md:p-4 border-b border-border">
+          {/* Level tabs */}
+          <div className="flex gap-1 overflow-x-auto no-scrollbar">
             {LEVEL_TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setLevel(t)}
+              <button key={t} onClick={() => setLevel(t)}
                 className={cn(
-                  "text-xs px-3 py-1.5 rounded-md transition-all font-medium",
+                  "text-xs px-3 py-1.5 rounded-md whitespace-nowrap transition-all font-medium flex-shrink-0",
                   level === t ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
+                )}>
                 {t}
               </button>
             ))}
           </div>
-          <div className="sm:ml-auto flex gap-2">
+          {/* Status filters */}
+          <div className="flex gap-1">
             {STATUS_FILTERS.map((s) => (
-              <button
-                key={s}
-                onClick={() => { setStatusFilter(s); setPage(1); }}
+              <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
                 className={cn(
-                  "text-xs px-2.5 py-1 rounded-md transition-all",
+                  "text-[11px] px-2.5 py-1 rounded-md transition-all",
                   statusFilter === s ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
+                )}>
                 {s}
               </button>
             ))}
           </div>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border">
-                {["Campanha","Objetivo","Status","Orçamento","Spend","Impressões","CTR","CPC","CPL","ROAS","Ações"].map((h) => (
+                {["Campanha", "Objetivo", "Status", "Orçamento", "Spend", "Impressões", "CTR", "CPC", "ROAS", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -189,121 +179,98 @@ export default function MetaDashboard() {
                   <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap max-w-[180px] truncate">{c.name}</td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.objective}</td>
                   <td className="px-4 py-3">{statusBadge(c.status)}</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap metric-value">R$ {c.budget.toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3 text-foreground whitespace-nowrap metric-value">R$ {c.spend.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap metric-value">{c.impressions.toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap metric-value">{c.ctr}%</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap metric-value">R$ {c.cpc.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap metric-value">{c.cpl > 0 ? `R$ ${c.cpl.toFixed(2)}` : "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap metric-value">
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {c.budget.toLocaleString("pt-BR")}</td>
+                  <td className="px-4 py-3 text-foreground whitespace-nowrap">R$ {c.spend.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.impressions.toLocaleString("pt-BR")}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.ctr}%</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {c.cpc.toFixed(2)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span className={cn("font-semibold", c.roas >= 3 ? "text-success" : c.roas >= 1.5 ? "text-warning" : "text-destructive")}>
                       {c.roas > 0 ? c.roas.toFixed(2) + "x" : "—"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:bg-primary/10">
-                      Ver
-                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:bg-primary/10">Ver</Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-border">
+          {paginated.map((c) => (
+            <div key={c.id} className="p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{c.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{c.objective}</div>
+                </div>
+                {statusBadge(c.status)}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <div className="text-[10px] text-muted-foreground">Spend</div>
+                  <div className="text-xs font-semibold text-foreground">R$ {(c.spend / 1000).toFixed(1)}k</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground">CTR</div>
+                  <div className="text-xs font-semibold text-foreground">{c.ctr}%</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground">ROAS</div>
+                  <div className={cn("text-xs font-semibold", c.roas >= 3 ? "text-success" : c.roas >= 1.5 ? "text-warning" : "text-destructive")}>
+                    {c.roas > 0 ? c.roas.toFixed(2) + "x" : "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pagination */}
         {pageCount > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <span className="text-xs text-muted-foreground">
-              {filteredCampaigns.length} campanhas · Página {page} de {pageCount}
+          <div className="flex items-center justify-between px-3 md:px-4 py-3 border-t border-border">
+            <span className="text-[11px] text-muted-foreground">
+              {filteredCampaigns.length} campanhas · {page}/{pageCount}
             </span>
             <div className="flex gap-1">
-              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>
-                Próxima
-              </Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Ant.</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Próx.</Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Breakdown Charts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-up" style={{ animationDelay: "280ms" }}>
-        {/* Placement Pie */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Investimento por Posicionamento</h3>
-          <ResponsiveContainer width="100%" height={200}>
+      {/* Breakdown charts — 1 col mobile, 2 col sm */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-up" style={{ animationDelay: "280ms" }}>
+        <div className="bg-card border border-border rounded-xl p-3 md:p-4">
+          <h3 className="text-xs font-semibold text-foreground mb-3">Investimento por Posicionamento</h3>
+          <ResponsiveContainer width="100%" height={180}>
             <PieChart>
-              <Pie data={metaPlacementBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={3}>
+              <Pie data={metaPlacementBreakdown} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
                 {metaPlacementBreakdown.map((_, i) => (
                   <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                 ))}
               </Pie>
               <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
-              <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v}</span>} />
+              <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Age Bar */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">CTR por Faixa Etária</h3>
-          <ResponsiveContainer width="100%" height={200}>
+        <div className="bg-card border border-border rounded-xl p-3 md:p-4">
+          <h3 className="text-xs font-semibold text-foreground mb-3">CTR por Faixa Etária</h3>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={metaAgeBreakdown} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(240,10%,20%)" />
-              <XAxis dataKey="age" tick={{ fontSize: 10, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="age" tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
               <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "CTR"]} />
               <Bar dataKey="ctr" fill="#6366F1" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-
-        {/* Device Bar */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Invest. por Dispositivo</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={metaDeviceBreakdown} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(240,10%,20%)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-              <YAxis type="category" dataKey="device" tick={{ fontSize: 10, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} width={55} />
-              <ReTooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="spend" fill="#10B981" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* CTR Heatmap (simplified grid) */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">CTR — Dia da Semana × Horário</h3>
-          <div className="overflow-x-auto">
-            <div className="grid" style={{ gridTemplateColumns: "40px repeat(8, 1fr)", gap: "3px", minWidth: "300px" }}>
-              <div />
-              {["0h","3h","6h","9h","12h","15h","18h","21h"].map((h) => (
-                <div key={h} className="text-[9px] text-muted-foreground text-center">{h}</div>
-              ))}
-              {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((day, di) => (
-                <>
-                  <div key={day + "-label"} className="text-[9px] text-muted-foreground flex items-center">{day}</div>
-                  {[...Array(8)].map((_, hi) => {
-                    const ctr = 0.5 + Math.random() * 3.7;
-                    const intensity = Math.min(ctr / 4, 1);
-                    return (
-                      <div
-                        key={`${di}-${hi}`}
-                        className="rounded aspect-square"
-                        style={{
-                          background: `hsla(239, 84%, 67%, ${intensity * 0.8 + 0.05})`,
-                          minHeight: "18px",
-                        }}
-                        title={`${ctr.toFixed(1)}% CTR`}
-                      />
-                    );
-                  })}
-                </>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
