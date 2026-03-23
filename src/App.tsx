@@ -39,9 +39,9 @@ const App = () => (
               <Route path="/rankings" element={<Rankings />} />
               <Route path="/ai-agent" element={<AIAgent />} />
               <Route path="/creative-audit" element={<CreativeAudit />} />
-              <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={<Settings />} />
             </Route>
-            <Route path="*" element={<NotFound />} />
+            <Route path="/fb-callback" element={<FacebookCallback />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
