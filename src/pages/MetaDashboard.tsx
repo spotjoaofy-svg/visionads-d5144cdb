@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -12,6 +12,7 @@ import {
   metaAgeBreakdown, metaDeviceBreakdown, dailyMetrics,
 } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { useAdAccounts, useAccountInsights } from "src/hooks/useMeta";
 
 const LEVEL_TABS = ["Campanhas", "Conjuntos", "Anúncios"];
 const STATUS_FILTERS = ["Todos", "Ativo", "Pausado"];
@@ -41,6 +42,13 @@ export default function MetaDashboard() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 5;
 
+  // Real Meta hooks
+  const { data: accounts, isLoading: accountsLoading } = useAdAccounts();
+  const firstAccount = accounts?.[0];
+  const accountId = firstAccount?.account_id || firstAccount?.id;
+  const [range] = useState({ since: "2026-03-01", until: "2026-03-22" });
+  const { data: insights, isLoading: insightsLoading } = useAccountInsights(accountId, range.since, range.until);
+
   const filteredCampaigns = metaCampaigns.filter((c) => {
     if (statusFilter === "Todos") return true;
     if (statusFilter === "Ativo") return c.status === "active";
@@ -59,6 +67,19 @@ export default function MetaDashboard() {
     Impressões: d.metaImpressions / 1000,
     Cliques: Math.round(d.metaImpressions * d.metaCtr / 100),
   }));
+
+  const summary = useMemo(() => {
+    if (!insights || insights.length === 0) return { impressions: 0, clicks: 0, spend: 0 };
+    return insights.reduce(
+      (acc: any, row: any) => {
+        acc.impressions += Number(row.impressions ?? 0);
+        acc.clicks += Number(row.clicks ?? 0);
+        acc.spend += Number(row.spend ?? 0);
+        return acc;
+      },
+      { impressions: 0, clicks: 0, spend: 0 }
+    );
+  }, [insights]);
 
   return (
     <div className="p-3 md:p-6 space-y-4 max-w-screen-2xl mx-auto">
@@ -91,16 +112,16 @@ export default function MetaDashboard() {
 
       {/* KPI Cards — 2 cols mobile, 3 md, 6 lg */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 animate-fade-up" style={{ animationDelay: "80ms" }}>
-        {[
-          { title: "Impressões", value: (metaKPIs.impressions.value / 1000000).toFixed(1) + "M", change: metaKPIs.impressions.change },
+        { [
+          { title: "Impressões", value: summary.impressions.toLocaleString("pt-BR"), change: metaKPIs.impressions.change },
           { title: "Alcance", value: (metaKPIs.reach.value / 1000).toFixed(0) + "k", change: metaKPIs.reach.change },
-          { title: "Cliques", value: metaKPIs.clicks.value.toLocaleString("pt-BR"), change: metaKPIs.clicks.change },
-          { title: "CTR", value: metaKPIs.ctr.value + "%", change: metaKPIs.ctr.change },
-          { title: "Investimento", value: `R$ ${(metaKPIs.spend.value / 1000).toFixed(1)}k`, change: metaKPIs.spend.change },
+          { title: "Cliques", value: summary.clicks.toLocaleString("pt-BR"), change: metaKPIs.clicks.change },
+          { title: "CTR", value: (summary.impressions > 0 ? ((summary.clicks / summary.impressions) * 100).toFixed(2) : "0.00") + "%", change: metaKPIs.ctr.change },
+          { title: "Investimento", value: `R$ ${(summary.spend / 1000).toFixed(1)}k`, change: metaKPIs.spend.change },
           { title: "ROAS", value: metaKPIs.roas.value + "x", change: metaKPIs.roas.change },
         ].map((kpi, i) => (
           <KPICard key={kpi.title} {...kpi} delay={i * 40} />
-        ))}
+        )) }
       </div>
 
       {/* Performance Chart */}
@@ -166,7 +187,7 @@ export default function MetaDashboard() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border">
-                {["Campanha", "Objetivo", "Status", "Orçamento", "Spend", "Impressões", "CTR", "CPC", "ROAS", ""].map((h) => (
+                { ["Campanha", "Objetivo", "Status", "Orçamento", "Spend", "Impressões", "CTR", "CPC", "ROAS", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
