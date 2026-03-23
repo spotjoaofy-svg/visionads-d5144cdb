@@ -69,8 +69,9 @@ export default function MetaDashboard() {
   }));
 
   const summary = useMemo(() => {
-    if (!insights || insights.length === 0) return { impressions: 0, clicks: 0, spend: 0 };
-    return insights.reduce(
+    const insightsArr = Array.isArray(insights) ? insights : [];
+    if (insightsArr.length === 0) return { impressions: 0, clicks: 0, spend: 0 };
+    return insightsArr.reduce(
       (acc: any, row: any) => {
         acc.impressions += Number(row.impressions ?? 0);
         acc.clicks += Number(row.clicks ?? 0);

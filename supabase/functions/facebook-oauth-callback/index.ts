@@ -41,7 +41,7 @@ serve(async (req) => {
   const tokenData = await tokenRes.json();
   if (tokenData.error) {
     return Response.redirect(
-      `${settingsUrl}?fb_error=${encodeURIComponent(tokenData.error.message)}`,
+      `${callbackUrl}?fb_error=${encodeURIComponent(tokenData.error.message)}`,
       302
     );
   }
