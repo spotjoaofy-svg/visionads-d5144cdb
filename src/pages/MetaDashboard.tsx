@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { KPICard } from "@/components/ui/KPICard";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import React, { useState, useMemo } from "react";
+import { Button } from "../components/ui/button";
+import { KPICard } from "../components/ui/KPICard";
+import { StatusBadge } from "../components/ui/StatusBadge";
 import {
   LineChart, Line, PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -10,9 +10,9 @@ import {
 import {
   metaCampaigns, metaKPIs, metaPlacementBreakdown,
   metaAgeBreakdown, metaDeviceBreakdown, dailyMetrics,
-} from "@/data/mockData";
-import { cn } from "@/lib/utils";
-import { useAdAccounts, useAccountInsights } from "src/hooks/useMeta";
+} from "../data/mockData";
+import { cn } from "../lib/utils";
+import { useAdAccounts, useAccountInsights } from "../hooks/useMeta";
 
 const LEVEL_TABS = ["Campanhas", "Conjuntos", "Anúncios"];
 const STATUS_FILTERS = ["Todos", "Ativo", "Pausado"];
