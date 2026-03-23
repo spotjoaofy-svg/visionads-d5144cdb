@@ -88,9 +88,48 @@ export default function Settings() {
         body: { workspace_id: workspaceId },
       });
       if (error || !data?.auth_url) throw new Error(error?.message ?? "Falha ao iniciar OAuth");
-      window.location.href = data.auth_url;
-    } catch (e: any) {
-      setFbToast({ type: "error", msg: e.message });
+
+      // Abre o OAuth em popup centralizado
+      const w = 520, h = 640;
+      const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
+      const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
+      const popup = window.open(
+        data.auth_url,
+        "facebook_oauth",
+        `width=${w},height=${h},left=${left},top=${top},toolbar=0,menubar=0,location=0,status=0`
+      );
+
+      if (!popup) {
+        // fallback se popup bloqueado
+        window.location.href = data.auth_url;
+        return;
+      }
+
+      // Escuta o postMessage da página /fb-callback
+      const onMessage = (ev: MessageEvent) => {
+        if (ev.origin !== window.location.origin) return;
+        if (ev.data?.type !== "fb_oauth") return;
+        window.removeEventListener("message", onMessage);
+        setFbLoading(false);
+        if (ev.data.status === "success") {
+          setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
+        } else {
+          setFbToast({ type: "error", msg: `Erro ao conectar: ${ev.data.error ?? "desconhecido"}` });
+        }
+      };
+      window.addEventListener("message", onMessage);
+
+      // Fallback: se o popup fechar sem postMessage (usuário fechou manualmente)
+      const pollClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(pollClosed);
+          window.removeEventListener("message", onMessage);
+          setFbLoading(false);
+        }
+      }, 500);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro desconhecido";
+      setFbToast({ type: "error", msg });
       setFbLoading(false);
     }
   };

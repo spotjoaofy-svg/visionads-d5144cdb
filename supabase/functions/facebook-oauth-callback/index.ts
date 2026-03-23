@@ -13,13 +13,13 @@ serve(async (req) => {
   const APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET")!;
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
   const appOrigin = "https://visionads.lovable.app";
-  const settingsUrl = `${appOrigin}/settings`;
+  const callbackUrl = `${appOrigin}/fb-callback`;
 
   if (error) {
-    return Response.redirect(`${settingsUrl}?fb_error=${encodeURIComponent(error)}`, 302);
+    return Response.redirect(`${callbackUrl}?fb_error=${encodeURIComponent(error)}`, 302);
   }
   if (!code) {
-    return Response.redirect(`${settingsUrl}?fb_error=missing_code`, 302);
+    return Response.redirect(`${callbackUrl}?fb_error=missing_code`, 302);
   }
 
   let workspaceId = "";
@@ -27,7 +27,7 @@ serve(async (req) => {
     const decoded = JSON.parse(atob(state ?? ""));
     workspaceId = decoded.workspace_id ?? "";
   } catch (_) {
-    return Response.redirect(`${settingsUrl}?fb_error=invalid_state`, 302);
+    return Response.redirect(`${callbackUrl}?fb_error=invalid_state`, 302);
   }
 
   // ── 1. Exchange code for access token ────────────────────────────────────────
@@ -186,5 +186,5 @@ serve(async (req) => {
     }
   }
 
-  return Response.redirect(`${settingsUrl}?fb_success=1`, 302);
+  return Response.redirect(`${callbackUrl}?fb_success=1`, 302);
 });

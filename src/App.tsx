@@ -17,6 +17,7 @@ import Rankings from "./pages/Rankings";
 import AIAgent from "./pages/AIAgent";
 import CreativeAudit from "./pages/CreativeAudit";
 import Settings from "./pages/Settings";
+import FacebookCallback from "./pages/FacebookCallback";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +41,7 @@ const App = () => (
               <Route path="/creative-audit" element={<CreativeAudit />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
-            <Route path="*" element={<NotFound />} />
+            <Route path="/fb-callback" element={<FacebookCallback />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
