@@ -186,5 +186,5 @@ serve(async (req) => {
     }
   }
 
-  return Response.redirect(`${settingsUrl}?fb_success=1`, 302);
+  return Response.redirect(`${callbackUrl}?fb_success=1`, 302);
 });
