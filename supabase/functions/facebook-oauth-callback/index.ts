@@ -16,10 +16,10 @@ serve(async (req) => {
   const callbackUrl = `${appOrigin}/fb-callback`;
 
   if (error) {
-    return Response.redirect(`${settingsUrl}?fb_error=${encodeURIComponent(error)}`, 302);
+    return Response.redirect(`${callbackUrl}?fb_error=${encodeURIComponent(error)}`, 302);
   }
   if (!code) {
-    return Response.redirect(`${settingsUrl}?fb_error=missing_code`, 302);
+    return Response.redirect(`${callbackUrl}?fb_error=missing_code`, 302);
   }
 
   let workspaceId = "";
@@ -27,7 +27,7 @@ serve(async (req) => {
     const decoded = JSON.parse(atob(state ?? ""));
     workspaceId = decoded.workspace_id ?? "";
   } catch (_) {
-    return Response.redirect(`${settingsUrl}?fb_error=invalid_state`, 302);
+    return Response.redirect(`${callbackUrl}?fb_error=invalid_state`, 302);
   }
 
   // ── 1. Exchange code for access token ────────────────────────────────────────
