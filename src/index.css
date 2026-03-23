@@ -208,6 +208,28 @@
   .sparkline-up { color: hsl(var(--success)); }
   .sparkline-down { color: hsl(var(--destructive)); }
 
+  /* No scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Slide in from left (drawer) */
+  @keyframes slideInLeft {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  .animate-slide-in-left {
+    animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Slide up (bottom sheet) */
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* Confetti */
   @keyframes confettiDrop {
     0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
