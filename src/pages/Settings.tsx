@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/context/AppContext";
 
-const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Cobrança", "Alertas"];
+const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Alertas"];
 
 const INTEGRATIONS = [
   {
