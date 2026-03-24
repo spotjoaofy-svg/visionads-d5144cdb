@@ -9,21 +9,21 @@ import {
   Bot,
   Palette,
   Settings,
-  Zap,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import logo from "@/assets/visionads-logo.png";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Visão Geral", path: "/" },
-  { icon: BarChart3, label: "Meta Ads", path: "/dashboard/meta" },
-  { icon: Search, label: "Google Ads", path: "/dashboard/google" },
-  { icon: Music2, label: "TikTok Ads", path: "/dashboard/tiktok" },
-  { icon: Trophy, label: "Rankings", path: "/rankings" },
-  { icon: Bot, label: "AI Agent", path: "/ai-agent" },
-  { icon: Palette, label: "Creative Audit", path: "/creative-audit" },
-  { icon: Settings, label: "Configurações", path: "/settings" },
+  { icon: LayoutDashboard, label: "Visão Geral", path: "/", comingSoon: false },
+  { icon: BarChart3, label: "Meta Ads", path: "/dashboard/meta", comingSoon: false },
+  { icon: Search, label: "Google Ads", path: "/dashboard/google", comingSoon: true },
+  { icon: Music2, label: "TikTok Ads", path: "/dashboard/tiktok", comingSoon: true },
+  { icon: Trophy, label: "Rankings", path: "/rankings", comingSoon: false },
+  { icon: Bot, label: "AI Agent", path: "/ai-agent", comingSoon: false },
+  { icon: Palette, label: "Creative Audit", path: "/creative-audit", comingSoon: false },
+  { icon: Settings, label: "Configurações", path: "/settings", comingSoon: false },
 ];
 
 interface SidebarProps {
@@ -49,12 +49,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center h-14 px-4 border-b border-sidebar-border flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary-foreground fill-current" />
-          </div>
+          <img src={logo} alt="VisionAds" className="flex-shrink-0 h-7 w-auto object-contain" />
           {!collapsed && (
             <span className="font-bold text-lg text-foreground tracking-tight truncate">
-              AdMind
+              VisionAds
             </span>
           )}
         </div>
@@ -82,8 +80,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                   )}
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-                {active && !collapsed && (
+                {!collapsed && (
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="truncate leading-tight">{item.label}</span>
+                    {item.comingSoon && (
+                      <span className="text-[9px] text-muted-foreground/60 leading-tight">em breve</span>
+                    )}
+                  </div>
+                )}
+                {active && !collapsed && !item.comingSoon && (
                   <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                 )}
               </NavLink>
@@ -95,7 +100,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   <Tooltip>
                     <TooltipTrigger asChild>{linkEl}</TooltipTrigger>
                     <TooltipContent side="right" className="bg-surface-raised border-border text-foreground">
-                      {item.label}
+                      {item.label}{item.comingSoon ? " (Em breve)" : ""}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
