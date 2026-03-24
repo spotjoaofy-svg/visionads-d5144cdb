@@ -9,24 +9,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, BarChart3, Search, Music2, Trophy, Bot, Palette, Zap,
+  LayoutDashboard, BarChart3, Search, Music2, Trophy, Bot, Palette,
 } from "lucide-react";
-
-const workspaces = ["Loja Exemplo BR", "Agência Central", "E-commerce Plus"];
+import logo from "@/assets/visionads-logo.png";
 
 const allNavItems = [
-  { icon: LayoutDashboard, label: "Visão Geral", path: "/" },
-  { icon: BarChart3, label: "Meta Ads", path: "/dashboard/meta" },
-  { icon: Search, label: "Google Ads", path: "/dashboard/google" },
-  { icon: Music2, label: "TikTok Ads", path: "/dashboard/tiktok" },
-  { icon: Trophy, label: "Rankings", path: "/rankings" },
-  { icon: Bot, label: "AI Agent", path: "/ai-agent" },
-  { icon: Palette, label: "Creative Audit", path: "/creative-audit" },
-  { icon: Settings, label: "Configurações", path: "/settings" },
+  { icon: LayoutDashboard, label: "Visão Geral", path: "/", comingSoon: false },
+  { icon: BarChart3, label: "Meta Ads", path: "/dashboard/meta", comingSoon: false },
+  { icon: Search, label: "Google Ads", path: "/dashboard/google", comingSoon: true },
+  { icon: Music2, label: "TikTok Ads", path: "/dashboard/tiktok", comingSoon: true },
+  { icon: Trophy, label: "Rankings", path: "/rankings", comingSoon: false },
+  { icon: Bot, label: "AI Agent", path: "/ai-agent", comingSoon: false },
+  { icon: Palette, label: "Creative Audit", path: "/creative-audit", comingSoon: false },
+  { icon: Settings, label: "Configurações", path: "/settings", comingSoon: false },
 ];
 
 interface TopBarProps {
@@ -34,7 +32,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ onMenuToggle }: TopBarProps) {
-  const { workspace, setWorkspace } = useApp();
   const location = useLocation();
   const [notifCount] = useState(3);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,9 +42,8 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   return (
     <>
       <header className="h-14 flex items-center justify-between px-3 md:px-5 border-b border-border bg-surface-elevated flex-shrink-0 z-40">
-        {/* Left: hamburger (mobile) + workspace */}
+        {/* Left: hamburger (mobile) + brand name */}
         <div className="flex items-center gap-2">
-          {/* Hamburger — mobile only */}
           <button
             className="md:hidden flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             onClick={() => setMobileMenuOpen((v) => !v)}
@@ -56,33 +52,11 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          {/* Workspace selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-sm font-medium text-foreground hover:bg-muted h-8 px-2"
-              >
-                <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-bold text-primary">LE</span>
-                </div>
-                <span className="hidden sm:inline max-w-[120px] truncate">{workspace}</span>
-                <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52 bg-surface-raised border-border">
-              {workspaces.map((ws) => (
-                <DropdownMenuItem
-                  key={ws}
-                  onClick={() => setWorkspace(ws)}
-                  className={cn("cursor-pointer text-sm", ws === workspace && "text-primary bg-primary/10")}
-                >
-                  {ws}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Mobile: show logo + name */}
+          <div className="md:hidden flex items-center gap-2">
+            <img src={logo} alt="VisionAds" className="h-6 w-auto object-contain" />
+            <span className="font-bold text-base text-foreground tracking-tight">VisionAds</span>
+          </div>
         </div>
 
         {/* Right actions */}
@@ -102,11 +76,8 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1.5 h-8 px-1.5 hover:bg-muted">
                 <Avatar className="w-6 h-6">
-                  <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-bold">AO</AvatarFallback>
+                  <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-bold">V</AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:inline text-sm font-medium text-foreground max-w-[90px] truncate">
-                  Ana Oliveira
-                </span>
                 <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
               </Button>
             </DropdownMenuTrigger>
@@ -129,19 +100,15 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       {/* Mobile full-screen drawer nav */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-30 flex" onClick={() => setMobileMenuOpen(false)}>
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          {/* Drawer */}
           <nav
             className="relative z-10 w-72 max-w-[85vw] h-full bg-sidebar border-r border-sidebar-border flex flex-col animate-slide-in-left"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Logo */}
             <div className="flex items-center gap-2.5 h-14 px-5 border-b border-sidebar-border flex-shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                <Zap className="w-4 h-4 text-primary-foreground fill-current" />
-              </div>
-              <span className="font-bold text-lg text-foreground tracking-tight">AdMind</span>
+              <img src={logo} alt="VisionAds" className="h-7 w-auto object-contain" />
+              <span className="font-bold text-lg text-foreground tracking-tight">VisionAds</span>
             </div>
 
             {/* Nav items */}
@@ -162,8 +129,13 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
                       )}
                     >
                       <item.icon className={cn("w-5 h-5 flex-shrink-0", active ? "text-primary" : "text-muted-foreground")} />
-                      {item.label}
-                      {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+                      <div className="flex flex-col min-w-0">
+                        <span className="leading-tight">{item.label}</span>
+                        {item.comingSoon && (
+                          <span className="text-[9px] text-muted-foreground/60 leading-tight">em breve</span>
+                        )}
+                      </div>
+                      {active && !item.comingSoon && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
                     </NavLink>
                   </li>
                 );

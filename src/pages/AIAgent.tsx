@@ -86,19 +86,75 @@ export default function AIAgent() {
 
   useEffect(() => {
     loadCampaigns();
-  }, [workspace]);
+  }, []);
 
   const loadCampaigns = async () => {
     setLoadingCampaigns(true);
     try {
+      // Try Meta API first if connected
+      const fbToken = localStorage.getItem("facebook_access_token");
+      if (fbToken) {
+        const fb = await import("@/integrations/meta/facebook");
+        const accounts = await fb.default.getAdAccounts();
+        const firstAcc = accounts?.[0];
+        if (firstAcc) {
+          const accountId = firstAcc.account_id
+            ? `act_${firstAcc.account_id}`
+            : firstAcc.id;
+          const today = new Date();
+          const since = new Date(today.getTime() - 29 * 86400000).toISOString().split("T")[0];
+          const until = today.toISOString().split("T")[0];
+          const insights = await fb.default.getCampaignInsights(accountId, since, until);
+          if (Array.isArray(insights) && insights.length > 0) {
+            const mapped: Campaign[] = insights.map((c: any) => ({
+              id: c.campaign_id ?? c.id ?? String(Math.random()),
+              name: c.campaign_name ?? c.name ?? "Campanha",
+              status: (c.effective_status ?? c.status ?? "ACTIVE"),
+              total_spend: Number(c.spend ?? 0),
+              impressions: Number(c.impressions ?? 0),
+              clicks: Number(c.clicks ?? 0),
+              ctr: Number(c.ctr ?? 0),
+              cpc: Number(c.cpc ?? 0),
+              cpm: Number(c.cpm ?? 0),
+              roas: (() => {
+                if (!c.action_values) return 0;
+                const rv = c.action_values.find((a: any) => a.action_type === "purchase");
+                const spend = Number(c.spend ?? 0);
+                return rv && spend > 0 ? Number(rv.value) / spend : 0;
+              })(),
+              conversions: (() => {
+                if (!c.actions) return 0;
+                const conv = c.actions.find((a: any) => a.action_type === "purchase");
+                return conv ? Number(conv.value ?? 0) : 0;
+              })(),
+              cpa: (() => {
+                if (!c.cost_per_action_type) return 0;
+                const cpa = c.cost_per_action_type.find((a: any) => a.action_type === "purchase");
+                return cpa ? Number(cpa.value ?? 0) : 0;
+              })(),
+              reach: Number(c.reach ?? 0),
+              daily_budget: null,
+              objective: null,
+            }));
+            setCampaigns(mapped.sort((a, b) => b.total_spend - a.total_spend));
+            return;
+          }
+        }
+      }
+      // Fallback: load from DB
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setCampaigns([]); return; }
       const { data: ws } = await supabase
-        .from("workspaces").select("id").eq("name", workspace).maybeSingle();
+        .from("workspaces").select("id").eq("owner_id", user.id).maybeSingle();
       if (!ws?.id) { setCampaigns([]); return; }
       const { data } = await supabase
         .from("campaigns")
         .select("id,name,status,total_spend,impressions,clicks,ctr,cpc,cpm,roas,conversions,cpa,reach,daily_budget,objective")
         .eq("workspace_id", ws.id).eq("platform", "meta").order("total_spend", { ascending: false });
       setCampaigns((data as Campaign[]) ?? []);
+    } catch (e) {
+      console.error("loadCampaigns error:", e);
+      setCampaigns([]);
     } finally {
       setLoadingCampaigns(false);
     }
