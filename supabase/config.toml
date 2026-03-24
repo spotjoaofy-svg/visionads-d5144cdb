@@ -1,1 +1,7 @@
 project_id = "btklpccneknufyqiwnaf"
+
+[functions.creative-audit]
+verify_jwt = false
+
+[functions.ai-campaign-analyst]
+verify_jwt = false
