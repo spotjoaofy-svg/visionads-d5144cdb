@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Check, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Check, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { teamMembers, alertRules, billingPlans } from "@/data/mockData";
+import { teamMembers, alertRules } from "@/data/mockData";
+import { useAdAccounts } from "@/hooks/useMeta";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/context/AppContext";
 
-const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Cobrança", "Alertas"];
+const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Alertas"];
 
 const INTEGRATIONS = [
   {
@@ -20,25 +21,21 @@ const INTEGRATIONS = [
     name: "Meta Ads",
     color: "#1877F2",
     letter: "M",
-    accounts: [
-      { name: "Loja Exemplo BR", id: "act_1234567890", limit: "R$ 5.000/dia" },
-    ],
+    comingSoon: false,
   },
   {
     id: "google",
     name: "Google Ads",
     color: "#EA4335",
     letter: "G",
-    accounts: [
-      { name: "Loja Exemplo", id: "123-456-7890", limit: "R$ 3.000/dia" },
-    ],
+    comingSoon: true,
   },
   {
     id: "tiktok",
     name: "TikTok Ads",
     color: "#010101",
     letter: "T",
-    accounts: [],
+    comingSoon: true,
   },
 ];
 
@@ -51,6 +48,8 @@ export default function Settings() {
   const [rules, setRules] = useState(alertRules);
   const [fbLoading, setFbLoading] = useState(false);
   const [fbToast, setFbToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
+  const { data: accounts } = useAdAccounts();
 
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r));
@@ -197,23 +196,35 @@ export default function Settings() {
       {/* INTEGRATIONS */}
       {tab === "Integrações" && (
         <div className="space-y-4 animate-fade-up" style={{ animationDelay: "120ms" }}>
-          {INTEGRATIONS.map((platform) => (
-            <div key={platform.id} className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-3 p-4 border-b border-border">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
-                  style={{ backgroundColor: platform.color }}
-                >
-                  {platform.letter}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-foreground text-sm">{platform.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {platform.accounts.length > 0 ? `${platform.accounts.length} conta(s) conectada(s)` : "Não conectado"}
+          {INTEGRATIONS.map((platform) => {
+            const isMetaConnected = platform.id === "meta" && (accounts?.length ?? 0) > 0;
+            const metaAccountName = platform.id === "meta" && accounts?.[0]?.name ? accounts[0].name : null;
+            return (
+              <div key={platform.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center gap-3 p-4 border-b border-border">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                    style={{ backgroundColor: platform.color }}
+                  >
+                    {platform.letter}
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  {platform.id === "meta" ? (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-foreground text-sm">{platform.name}</div>
+                      {platform.comingSoon && (
+                        <span className="text-[10px] bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded-full font-medium">
+                          Em breve
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {platform.id === "meta"
+                        ? isMetaConnected ? `${accounts!.length} conta(s) conectada(s)` : "Não conectado"
+                        : "Não disponível ainda"
+                      }
+                    </div>
+                  </div>
+                  {!platform.comingSoon && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -224,37 +235,34 @@ export default function Settings() {
                       {fbLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                       {fbLoading ? "Conectando…" : "Adicionar conta"}
                     </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5" disabled>
-                      <Plus className="w-3 h-3" /> Em breve
-                    </Button>
                   )}
                 </div>
-              </div>
-              {platform.accounts.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {platform.accounts.map((acc) => (
-                    <div key={acc.id} className="flex items-center justify-between px-4 py-3">
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{acc.name}</div>
-                        <div className="text-xs text-muted-foreground">ID: {acc.id} · Limite: {acc.limit}</div>
-                      </div>
-                      <div className="flex gap-2">
+
+                {platform.id === "meta" && isMetaConnected ? (
+                  <div className="divide-y divide-border">
+                    {accounts!.map((acc: any) => (
+                      <div key={acc.id} className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{acc.name}</div>
+                          <div className="text-xs text-muted-foreground">ID: {acc.account_id ?? acc.id}</div>
+                        </div>
                         <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Conectado</Badge>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:bg-destructive/10">
-                          Desconectar
-                        </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center p-6 text-sm text-muted-foreground">
-                  Nenhuma conta conectada · Clique em "Adicionar conta" para conectar
-                </div>
-              )}
-            </div>
-          ))}
+                    ))}
+                  </div>
+                ) : platform.id === "meta" ? (
+                  <div className="flex items-center justify-center p-6 text-sm text-muted-foreground">
+                    Nenhuma conta conectada · Clique em "Adicionar conta" para conectar
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    Integração em desenvolvimento — disponível em breve
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -294,42 +302,6 @@ export default function Settings() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* BILLING */}
-      {tab === "Cobrança" && (
-        <div className="space-y-4 animate-fade-up" style={{ animationDelay: "120ms" }}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {billingPlans.map((plan) => (
-              <div key={plan.id}
-                className={cn("relative bg-card border rounded-xl p-5 transition-all",
-                  "current" in plan && plan.current ? "border-primary" : "border-border"
-                )}>
-                {"current" in plan && plan.current && (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">
-                    ATUAL
-                  </span>
-                )}
-                <div className="font-semibold text-foreground mb-1">{plan.name}</div>
-                <div className="text-2xl font-bold text-primary mb-0.5">
-                  R$ {plan.price}<span className="text-sm text-muted-foreground font-normal">/mês</span>
-                </div>
-                <ul className="mt-3 space-y-1.5 mb-4">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-success flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                {!("current" in plan && plan.current) && (
-                  <Button size="sm" variant="outline" className="w-full h-8 text-xs border-border">
-                    {plan.price > 497 ? "Falar com vendas" : "Fazer upgrade"}
-                  </Button>
-                )}
-              </div>
-            ))}
           </div>
         </div>
       )}
