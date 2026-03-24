@@ -194,23 +194,35 @@ export default function Settings() {
       {/* INTEGRATIONS */}
       {tab === "Integrações" && (
         <div className="space-y-4 animate-fade-up" style={{ animationDelay: "120ms" }}>
-          {INTEGRATIONS.map((platform) => (
-            <div key={platform.id} className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-3 p-4 border-b border-border">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
-                  style={{ backgroundColor: platform.color }}
-                >
-                  {platform.letter}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-foreground text-sm">{platform.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {platform.accounts.length > 0 ? `${platform.accounts.length} conta(s) conectada(s)` : "Não conectado"}
+          {INTEGRATIONS.map((platform) => {
+            const isMetaConnected = platform.id === "meta" && (accounts?.length ?? 0) > 0;
+            const metaAccountName = platform.id === "meta" && accounts?.[0]?.name ? accounts[0].name : null;
+            return (
+              <div key={platform.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center gap-3 p-4 border-b border-border">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                    style={{ backgroundColor: platform.color }}
+                  >
+                    {platform.letter}
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  {platform.id === "meta" ? (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-foreground text-sm">{platform.name}</div>
+                      {platform.comingSoon && (
+                        <span className="text-[10px] bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded-full font-medium">
+                          Em breve
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {platform.id === "meta"
+                        ? isMetaConnected ? `${accounts!.length} conta(s) conectada(s)` : "Não conectado"
+                        : "Não disponível ainda"
+                      }
+                    </div>
+                  </div>
+                  {!platform.comingSoon && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -221,37 +233,34 @@ export default function Settings() {
                       {fbLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                       {fbLoading ? "Conectando…" : "Adicionar conta"}
                     </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground gap-1.5" disabled>
-                      <Plus className="w-3 h-3" /> Em breve
-                    </Button>
                   )}
                 </div>
-              </div>
-              {platform.accounts.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {platform.accounts.map((acc) => (
-                    <div key={acc.id} className="flex items-center justify-between px-4 py-3">
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{acc.name}</div>
-                        <div className="text-xs text-muted-foreground">ID: {acc.id} · Limite: {acc.limit}</div>
-                      </div>
-                      <div className="flex gap-2">
+
+                {platform.id === "meta" && isMetaConnected ? (
+                  <div className="divide-y divide-border">
+                    {accounts!.map((acc: any) => (
+                      <div key={acc.id} className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{acc.name}</div>
+                          <div className="text-xs text-muted-foreground">ID: {acc.account_id ?? acc.id}</div>
+                        </div>
                         <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Conectado</Badge>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:bg-destructive/10">
-                          Desconectar
-                        </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center p-6 text-sm text-muted-foreground">
-                  Nenhuma conta conectada · Clique em "Adicionar conta" para conectar
-                </div>
-              )}
-            </div>
-          ))}
+                    ))}
+                  </div>
+                ) : platform.id === "meta" ? (
+                  <div className="flex items-center justify-center p-6 text-sm text-muted-foreground">
+                    Nenhuma conta conectada · Clique em "Adicionar conta" para conectar
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    Integração em desenvolvimento — disponível em breve
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
