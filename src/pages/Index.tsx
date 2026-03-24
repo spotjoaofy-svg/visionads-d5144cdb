@@ -1,20 +1,23 @@
 import { useState } from "react";
+import { format, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import {
   DollarSign, Target, TrendingUp, Megaphone,
-  ExternalLink, AlertTriangle, CheckCircle, XCircle, Clock,
+  ExternalLink, AlertTriangle, CheckCircle, XCircle, Clock, CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as ReTooltip, ResponsiveContainer,
 } from "recharts";
 import { dailyMetrics, overviewKPIs, platformSummary, activeAlerts } from "@/data/mockData";
 import { cn } from "@/lib/utils";
-
-const DATE_RANGES = ["7D", "14D", "30D", "90D"] as const;
 
 function formatBRL(n: number) {
   return `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}`;
