@@ -49,6 +49,8 @@ export default function Settings() {
   const [fbLoading, setFbLoading] = useState(false);
   const [fbToast, setFbToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+  const { data: accounts } = useAdAccounts();
+
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r));
   };
