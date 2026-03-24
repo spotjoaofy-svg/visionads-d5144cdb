@@ -1,7 +1,6 @@
 // src/hooks/useMeta.ts
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import fb from "../integrations/meta/facebook";
-import { supabase } from "@/integrations/supabase/client";
 
 export function useIsMetaConnected() {
   return typeof window !== "undefined" && !!localStorage.getItem("facebook_access_token");
@@ -60,6 +59,26 @@ export function usePlacementBreakdown(adAccountId?: string, since?: string, unti
   return useQuery({
     queryKey: ["fb", "placement-breakdown", adAccountId, since, until],
     queryFn: () => fb.getPlacementBreakdown(adAccountId!, since!, until!),
+    enabled: !!adAccountId && !!since && !!until,
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  });
+}
+
+export function useGenderBreakdown(adAccountId?: string, since?: string, until?: string) {
+  return useQuery({
+    queryKey: ["fb", "gender-breakdown", adAccountId, since, until],
+    queryFn: () => fb.getGenderBreakdown(adAccountId!, since!, until!),
+    enabled: !!adAccountId && !!since && !!until,
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  });
+}
+
+export function useDeviceBreakdown(adAccountId?: string, since?: string, until?: string) {
+  return useQuery({
+    queryKey: ["fb", "device-breakdown", adAccountId, since, until],
+    queryFn: () => fb.getDeviceBreakdown(adAccountId!, since!, until!),
     enabled: !!adAccountId && !!since && !!until,
     staleTime: 1000 * 60 * 10,
     retry: false,
