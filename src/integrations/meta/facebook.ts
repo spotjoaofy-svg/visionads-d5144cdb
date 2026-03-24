@@ -49,14 +49,67 @@ export async function getCampaigns(adAccountId: string) {
   });
 }
 
+// All available insight fields from Meta Ads API
+const ALL_INSIGHT_FIELDS = [
+  "impressions",
+  "clicks",
+  "spend",
+  "reach",
+  "frequency",
+  "ctr",
+  "cpc",
+  "cpm",
+  "cpp",
+  "actions",
+  "action_values",
+  "cost_per_action_type",
+  "cost_per_unique_click",
+  "cost_per_unique_action_type",
+  "cost_per_inline_link_click",
+  "cost_per_inline_post_engagement",
+  "unique_clicks",
+  "unique_ctr",
+  "inline_link_clicks",
+  "inline_link_click_ctr",
+  "inline_post_engagement",
+  "outbound_clicks",
+  "outbound_clicks_ctr",
+  "website_ctr",
+  "social_spend",
+  "purchase_roas",
+  "mobile_app_purchase_roas",
+  "website_purchase_roas",
+  "full_view_impressions",
+  "full_view_reach",
+  "video_play_actions",
+  "video_p25_watched_actions",
+  "video_p50_watched_actions",
+  "video_p75_watched_actions",
+  "video_p95_watched_actions",
+  "video_p100_watched_actions",
+  "video_30_sec_watched_actions",
+  "video_avg_time_watched_actions",
+  "video_continuous_2_sec_watched_actions",
+  "cost_per_15_sec_video_view",
+  "cost_per_2_sec_continuous_video_view",
+  "cost_per_thruplay",
+  "canvas_avg_view_percent",
+  "canvas_avg_view_time",
+  "instant_experience_clicks_to_open",
+  "instant_experience_clicks_to_start",
+  "landing_page_view_per_link_click",
+  "purchase_per_landing_page_view",
+  "objective",
+  "optimization_goal",
+  "buying_type",
+].join(",");
+
 export async function getInsights(
   nodeId: string,
   opts: { level?: string; since?: string; until?: string; fields?: string } = {}
 ) {
   const level = opts.level ?? "account";
-  const fields =
-    opts.fields ??
-    "impressions,clicks,spend,reach,frequency,ctr,cpc,cpm,actions,action_values,cost_per_action_type";
+  const fields = opts.fields ?? ALL_INSIGHT_FIELDS;
   const params: Record<string, string> = { fields, level };
   if (opts.since && opts.until) params.time_range = JSON.stringify({ since: opts.since, until: opts.until });
   const path = nodeId.startsWith("act_") ? `${nodeId}/insights` : `act_${nodeId}/insights`;
@@ -69,8 +122,41 @@ export async function getCampaignInsights(adAccountId: string, since: string, un
     : `act_${adAccountId}/insights`;
   return paginate(path, {
     level: "campaign",
-    fields:
-      "campaign_id,campaign_name,impressions,clicks,spend,reach,ctr,cpc,cpm,actions,action_values,cost_per_action_type,frequency",
+    fields: [
+      "campaign_id",
+      "campaign_name",
+      "impressions",
+      "clicks",
+      "spend",
+      "reach",
+      "frequency",
+      "ctr",
+      "cpc",
+      "cpm",
+      "cpp",
+      "actions",
+      "action_values",
+      "cost_per_action_type",
+      "cost_per_unique_click",
+      "unique_clicks",
+      "unique_ctr",
+      "inline_link_clicks",
+      "inline_link_click_ctr",
+      "outbound_clicks",
+      "outbound_clicks_ctr",
+      "social_spend",
+      "purchase_roas",
+      "website_purchase_roas",
+      "video_play_actions",
+      "video_p25_watched_actions",
+      "video_p50_watched_actions",
+      "video_p75_watched_actions",
+      "video_p95_watched_actions",
+      "video_p100_watched_actions",
+      "video_30_sec_watched_actions",
+      "video_avg_time_watched_actions",
+      "cost_per_thruplay",
+    ].join(","),
     time_range: JSON.stringify({ since, until }),
   });
 }
@@ -81,7 +167,29 @@ export async function getDailyInsights(adAccountId: string, since: string, until
     : `act_${adAccountId}/insights`;
   return paginate(path, {
     level: "account",
-    fields: "impressions,clicks,spend,reach,ctr,cpc,cpm,actions,action_values",
+    fields: [
+      "impressions",
+      "clicks",
+      "spend",
+      "reach",
+      "frequency",
+      "ctr",
+      "cpc",
+      "cpm",
+      "actions",
+      "action_values",
+      "cost_per_action_type",
+      "unique_clicks",
+      "inline_link_clicks",
+      "outbound_clicks",
+      "purchase_roas",
+      "video_play_actions",
+      "video_p25_watched_actions",
+      "video_p50_watched_actions",
+      "video_p75_watched_actions",
+      "video_p100_watched_actions",
+      "video_30_sec_watched_actions",
+    ].join(","),
     time_range: JSON.stringify({ since, until }),
     time_increment: "1",
   });
@@ -93,7 +201,7 @@ export async function getAgeBreakdown(adAccountId: string, since: string, until:
     : `act_${adAccountId}/insights`;
   return paginate(path, {
     level: "account",
-    fields: "impressions,clicks,spend,ctr",
+    fields: "impressions,clicks,spend,ctr,cpc,reach",
     time_range: JSON.stringify({ since, until }),
     breakdowns: "age",
   });
@@ -105,9 +213,33 @@ export async function getPlacementBreakdown(adAccountId: string, since: string, 
     : `act_${adAccountId}/insights`;
   return paginate(path, {
     level: "account",
-    fields: "impressions,clicks,spend",
+    fields: "impressions,clicks,spend,reach,ctr",
     time_range: JSON.stringify({ since, until }),
     breakdowns: "publisher_platform",
+  });
+}
+
+export async function getGenderBreakdown(adAccountId: string, since: string, until: string) {
+  const path = adAccountId.startsWith("act_")
+    ? `${adAccountId}/insights`
+    : `act_${adAccountId}/insights`;
+  return paginate(path, {
+    level: "account",
+    fields: "impressions,clicks,spend,ctr,reach",
+    time_range: JSON.stringify({ since, until }),
+    breakdowns: "gender",
+  });
+}
+
+export async function getDeviceBreakdown(adAccountId: string, since: string, until: string) {
+  const path = adAccountId.startsWith("act_")
+    ? `${adAccountId}/insights`
+    : `act_${adAccountId}/insights`;
+  return paginate(path, {
+    level: "account",
+    fields: "impressions,clicks,spend,ctr",
+    time_range: JSON.stringify({ since, until }),
+    breakdowns: "impression_device",
   });
 }
 
@@ -119,4 +251,6 @@ export default {
   getDailyInsights,
   getAgeBreakdown,
   getPlacementBreakdown,
+  getGenderBreakdown,
+  getDeviceBreakdown,
 };
