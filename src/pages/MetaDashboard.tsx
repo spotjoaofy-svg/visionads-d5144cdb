@@ -2,11 +2,11 @@ import { useState, useMemo } from "react";
 import { format, subDays, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { MetricKPICard, type MetricOption } from "@/components/ui/MetricKPICard";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, RefreshCw, Loader2, AlertCircle } from "lucide-react";
+import { CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import {
   LineChart, Line, PieChart, Pie, Cell,
@@ -26,8 +26,40 @@ import {
 
 const LEVEL_TABS = ["Campanhas", "Conjuntos", "Anúncios"];
 const STATUS_FILTERS = ["Todos", "Ativo", "Pausado", "Encerrado"];
-const METRICS = ["Spend", "CTR", "Impressões", "Cliques", "CPM", "CPC"];
+const CHART_METRICS = ["Spend", "CTR", "Impressões", "Cliques", "CPM", "CPC", "Alcance", "ROAS"];
 const PIE_COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4"];
+
+const fmtBRL = (v: number) => `R$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}`;
+const fmtK = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toLocaleString("pt-BR");
+const fmtPct = (v: number) => `${v.toFixed(2)}%`;
+const fmtX = (v: number) => v > 0 ? `${v.toFixed(2)}x` : "—";
+const fmtBRLK = (v: number) => `R$ ${(v / 1000).toFixed(1)}k`;
+
+// All available KPI metrics definitions
+const ALL_METRICS: MetricOption[] = [
+  { key: "spend",       label: "Investimento",   format: fmtBRL,  description: "Total investido no período" },
+  { key: "impressions", label: "Impressões",      format: fmtK,    description: "Total de impressões" },
+  { key: "reach",       label: "Alcance",         format: fmtK,    description: "Pessoas únicas alcançadas" },
+  { key: "clicks",      label: "Cliques",         format: fmtK,    description: "Total de cliques no link" },
+  { key: "ctr",         label: "CTR",             format: fmtPct,  description: "Taxa de cliques" },
+  { key: "cpc",         label: "CPC",             format: fmtBRL,  description: "Custo por clique" },
+  { key: "cpm",         label: "CPM",             format: fmtBRL,  description: "Custo por mil impressões" },
+  { key: "roas",        label: "ROAS",            format: fmtX,    description: "Retorno sobre o investimento" },
+  { key: "conversions", label: "Conversões",      format: (v) => v.toLocaleString("pt-BR"), description: "Total de conversões" },
+  { key: "cpa",         label: "CPA",             format: fmtBRL,  description: "Custo por conversão" },
+  { key: "frequency",   label: "Frequência",      format: (v) => v.toFixed(2) + "x", description: "Média de vezes que cada pessoa viu o anúncio" },
+  { key: "cpl",         label: "CPL",             format: fmtBRL,  description: "Custo por lead" },
+];
+
+// Card groups: each card has a default metric + allowed metrics to switch between
+const CARD_GROUPS: { default: string; options: string[] }[] = [
+  { default: "spend",       options: ["spend", "cpc", "cpm", "cpa", "cpl"] },
+  { default: "impressions", options: ["impressions", "reach", "clicks", "conversions"] },
+  { default: "ctr",         options: ["ctr", "roas", "frequency"] },
+  { default: "roas",        options: ["roas", "ctr", "cpc", "cpa"] },
+  { default: "clicks",      options: ["clicks", "impressions", "reach"] },
+  { default: "cpm",         options: ["cpm", "cpc", "cpl", "cpa"] },
+];
 
 const tooltipStyle = {
   backgroundColor: "hsl(240, 13%, 10%)",
@@ -55,6 +87,18 @@ function getRoas(row: any): number {
   return Number(rv.value ?? 0) / spend;
 }
 
+function getCpl(row: any): number {
+  if (!row?.cost_per_action_type) return 0;
+  const cpl = row.cost_per_action_type.find((a: any) => a.action_type === "lead");
+  return cpl ? Number(cpl.value ?? 0) : 0;
+}
+
+function getCpa(row: any): number {
+  if (!row?.cost_per_action_type) return 0;
+  const cpa = row.cost_per_action_type.find((a: any) => a.action_type === "purchase");
+  return cpa ? Number(cpa.value ?? 0) : 0;
+}
+
 function statusBadge(status: string) {
   const s = (status ?? "").toUpperCase();
   if (s === "ACTIVE") return <StatusBadge severity="success" label="Ativo" />;
@@ -65,7 +109,7 @@ function statusBadge(status: string) {
 export default function MetaDashboard() {
   const [level, setLevel] = useState("Campanhas");
   const [statusFilter, setStatusFilter] = useState("Todos");
-  const [metric, setMetric] = useState("Spend");
+  const [chartMetric, setChartMetric] = useState("Spend");
   const [page, setPage] = useState(1);
   const [calOpen, setCalOpen] = useState(false);
   const PER_PAGE = 5;
@@ -94,9 +138,11 @@ export default function MetaDashboard() {
   const isConnected = !accountsError && (accounts?.length ?? 0) > 0;
   const isLoading = accountsLoading || insightsLoading;
 
+  // Build full summary with ALL metrics
   const summary = useMemo(() => {
     const arr = Array.isArray(insights) ? insights : [];
-    if (arr.length === 0) return { impressions: 0, clicks: 0, spend: 0, reach: 0, ctr: 0, cpc: 0, roas: 0, conversions: 0 };
+    const base = { impressions: 0, clicks: 0, spend: 0, reach: 0, ctr: 0, cpc: 0, cpm: 0, roas: 0, conversions: 0, cpa: 0, cpl: 0, frequency: 0 };
+    if (arr.length === 0) return base;
     const s = arr.reduce((acc: any, row: any) => {
       acc.impressions += Number(row.impressions ?? 0);
       acc.clicks += Number(row.clicks ?? 0);
@@ -104,10 +150,14 @@ export default function MetaDashboard() {
       acc.reach += Number(row.reach ?? 0);
       acc.conversions += getConversions(row);
       return acc;
-    }, { impressions: 0, clicks: 0, spend: 0, reach: 0, conversions: 0 });
+    }, { ...base });
     s.ctr = s.impressions > 0 ? (s.clicks / s.impressions) * 100 : 0;
     s.cpc = s.clicks > 0 ? s.spend / s.clicks : 0;
-    s.roas = getRoas(arr[0]);
+    s.cpm = s.impressions > 0 ? (s.spend / s.impressions) * 1000 : 0;
+    s.roas = arr.length > 0 ? getRoas(arr[0]) : 0;
+    s.cpa = arr.length > 0 ? getCpa(arr[0]) : 0;
+    s.cpl = arr.length > 0 ? getCpl(arr[0]) : 0;
+    s.frequency = arr.length > 0 ? Number(arr[0].frequency ?? 0) : 0;
     return s;
   }, [insights]);
 
@@ -123,6 +173,8 @@ export default function MetaDashboard() {
       Cliques: Number(d.clicks ?? 0),
       CPM: Number(d.cpm ?? 0),
       CPC: Number(d.cpc ?? 0),
+      Alcance: Number(d.reach ?? 0),
+      ROAS: getRoas(d),
     }));
   }, [dailyData]);
 
@@ -216,7 +268,6 @@ export default function MetaDashboard() {
 
         {/* Date range picker */}
         <div className="flex flex-wrap gap-2 items-center">
-          {/* Quick presets */}
           <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
             {QUICK_PRESETS.map((p) => (
               <button
@@ -235,7 +286,6 @@ export default function MetaDashboard() {
             ))}
           </div>
 
-          {/* Custom calendar picker */}
           <Popover open={calOpen} onOpenChange={setCalOpen}>
             <PopoverTrigger asChild>
               <button className={cn(
@@ -263,18 +313,25 @@ export default function MetaDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 animate-fade-up" style={{ animationDelay: "80ms" }}>
-        {[
-          { title: "Impressões", value: summary.impressions.toLocaleString("pt-BR") },
-          { title: "Alcance", value: summary.reach > 0 ? (summary.reach / 1000).toFixed(1) + "k" : "—" },
-          { title: "Cliques", value: summary.clicks.toLocaleString("pt-BR") },
-          { title: "CTR", value: summary.ctr.toFixed(2) + "%" },
-          { title: "Investimento", value: `R$ ${(summary.spend / 1000).toFixed(1)}k` },
-          { title: "ROAS", value: summary.roas > 0 ? summary.roas.toFixed(2) + "x" : "—" },
-        ].map((kpi, i) => (
-          <KPICard key={kpi.title} {...kpi} change={0} delay={i * 40} />
-        ))}
+      {/* KPI Cards — clickable metric selector */}
+      <div
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 animate-fade-up"
+        style={{ animationDelay: "80ms" }}
+      >
+        {CARD_GROUPS.map((group, i) => {
+          const metricsForCard = ALL_METRICS.filter((m) => group.options.includes(m.key));
+          return (
+            <MetricKPICard
+              key={group.default + i}
+              metrics={metricsForCard}
+              defaultMetric={group.default}
+              data={summary}
+              change={0}
+              delay={i * 40}
+              isLoading={isLoading}
+            />
+          );
+        })}
       </div>
 
       {/* Performance Chart */}
@@ -282,11 +339,11 @@ export default function MetaDashboard() {
         <div className="flex flex-col gap-2 mb-3">
           <h2 className="text-sm font-semibold text-foreground">Desempenho ao Longo do Tempo</h2>
           <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
-            {METRICS.map((m) => (
-              <button key={m} onClick={() => setMetric(m)}
+            {CHART_METRICS.map((m) => (
+              <button key={m} onClick={() => setChartMetric(m)}
                 className={cn(
                   "text-[11px] px-2.5 py-1 rounded-md border whitespace-nowrap transition-all flex-shrink-0",
-                  metric === m ? "bg-primary/20 border-primary/40 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                  chartMetric === m ? "bg-primary/20 border-primary/40 text-primary" : "border-border text-muted-foreground hover:text-foreground"
                 )}>
                 {m}
               </button>
@@ -299,7 +356,7 @@ export default function MetaDashboard() {
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex items-center justify-center h-[180px] text-xs text-muted-foreground">
-            Sem dados para o período selecionado
+            {isConnected ? "Sem dados para o período selecionado" : "Conecte sua conta Meta para ver dados reais"}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={180}>
@@ -308,7 +365,7 @@ export default function MetaDashboard() {
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} width={36} />
               <ReTooltip contentStyle={tooltipStyle} />
-              <Line type="monotone" dataKey={metric} stroke="#6366F1" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey={chartMetric} stroke="#6366F1" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -316,7 +373,6 @@ export default function MetaDashboard() {
 
       {/* Campaign table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up" style={{ animationDelay: "200ms" }}>
-        {/* Toolbar */}
         <div className="flex flex-col gap-2 p-3 md:p-4 border-b border-border">
           <div className="flex gap-1 overflow-x-auto no-scrollbar">
             {LEVEL_TABS.map((t) => (
@@ -359,7 +415,7 @@ export default function MetaDashboard() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Campanha", "Status", "Spend", "Impressões", "Cliques", "CTR", "CPC", "ROAS", "Conv."].map((h) => (
+                    {["Campanha", "Status", "Spend", "Impressões", "Cliques", "CTR", "CPC", "CPM", "ROAS", "Conv.", "Freq."].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
@@ -376,12 +432,14 @@ export default function MetaDashboard() {
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.clicks.toLocaleString("pt-BR")}</td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{Number(c.ctr).toFixed(2)}%</td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {Number(c.cpc).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {Number(c.cpm).toFixed(2)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={cn("font-semibold", c.roas >= 3 ? "text-success" : c.roas >= 1.5 ? "text-warning" : c.roas > 0 ? "text-destructive" : "text-muted-foreground")}>
                           {c.roas > 0 ? c.roas.toFixed(2) + "x" : "—"}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.conversions}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.frequency > 0 ? c.frequency.toFixed(1) + "x" : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -402,6 +460,9 @@ export default function MetaDashboard() {
                     <div><div className="text-[10px] text-muted-foreground">Spend</div><div className="text-xs font-semibold text-foreground">R$ {(c.spend / 1000).toFixed(1)}k</div></div>
                     <div><div className="text-[10px] text-muted-foreground">CTR</div><div className="text-xs font-semibold text-foreground">{Number(c.ctr).toFixed(2)}%</div></div>
                     <div><div className="text-[10px] text-muted-foreground">ROAS</div><div className={cn("text-xs font-semibold", c.roas >= 3 ? "text-success" : c.roas >= 1.5 ? "text-warning" : "text-destructive")}>{c.roas > 0 ? c.roas.toFixed(2) + "x" : "—"}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">CPC</div><div className="text-xs font-semibold text-foreground">R$ {Number(c.cpc).toFixed(2)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">CPM</div><div className="text-xs font-semibold text-foreground">R$ {Number(c.cpm).toFixed(2)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">Conv.</div><div className="text-xs font-semibold text-foreground">{c.conversions}</div></div>
                   </div>
                 </div>
               ))}

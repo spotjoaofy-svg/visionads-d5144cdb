@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, ChevronDown, BarChart2, Loader2, RefreshCw, X } from "lucide-react";
+import { Send, Bot, User, ChevronDown, BarChart2, Loader2, RefreshCw, X, CalendarIcon } from "lucide-react";
+import { format, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { suggestedQuestions } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,11 +46,12 @@ function fmt(n: number, decimals = 2) {
   return n?.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function buildCampaignContext(c: Campaign): string {
+function buildCampaignContext(c: Campaign, since: string, until: string): string {
   return `Campanha: "${c.name}"
+Período analisado: ${since} a ${until}
 Status: ${c.status}
 Objetivo: ${c.objective ?? "N/A"}
-Investimento total (30d): R$ ${fmt(c.total_spend)}
+Investimento total: R$ ${fmt(c.total_spend)}
 Orçamento diário: ${c.daily_budget ? "R$ " + fmt(c.daily_budget) : "N/A"}
 Impressões: ${c.impressions?.toLocaleString("pt-BR")}
 Cliques: ${c.clicks?.toLocaleString("pt-BR")}
@@ -64,11 +70,13 @@ function formatTime() {
 
 export default function AIAgent() {
   const { workspace } = useApp();
+  const today = new Date();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "ai",
-      content: "Olá! Sou seu especialista em tráfego pago. Selecione uma campanha para analisar seus KPIs em detalhes, ou me faça uma pergunta geral. 🚀",
+      content: "Olá! Sou seu especialista em tráfego pago. Selecione uma campanha e um período para analisar seus KPIs em detalhes, ou me faça uma pergunta geral. 🚀",
       time: formatTime(),
     },
   ]);
@@ -78,7 +86,26 @@ export default function AIAgent() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(today, 29),
+    to: today,
+  });
+
+  const since = dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : format(subDays(today, 29), "yyyy-MM-dd");
+  const until = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : format(today, "yyyy-MM-dd");
+
+  const dateLabel = dateRange.from && dateRange.to
+    ? `${format(dateRange.from, "dd/MM/yy")} – ${format(dateRange.to, "dd/MM/yy")}`
+    : "Selecionar período";
+
+  const QUICK_PRESETS = [
+    { label: "7D", from: subDays(today, 6), to: today },
+    { label: "14D", from: subDays(today, 13), to: today },
+    { label: "30D", from: subDays(today, 29), to: today },
+  ];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -86,12 +113,11 @@ export default function AIAgent() {
 
   useEffect(() => {
     loadCampaigns();
-  }, []);
+  }, [since, until]);
 
   const loadCampaigns = async () => {
     setLoadingCampaigns(true);
     try {
-      // Try Meta API first if connected
       const fbToken = localStorage.getItem("facebook_access_token");
       if (fbToken) {
         const fb = await import("@/integrations/meta/facebook");
@@ -101,9 +127,6 @@ export default function AIAgent() {
           const accountId = firstAcc.account_id
             ? `act_${firstAcc.account_id}`
             : firstAcc.id;
-          const today = new Date();
-          const since = new Date(today.getTime() - 29 * 86400000).toISOString().split("T")[0];
-          const until = today.toISOString().split("T")[0];
           const insights = await fb.default.getCampaignInsights(accountId, since, until);
           if (Array.isArray(insights) && insights.length > 0) {
             const mapped: Campaign[] = insights.map((c: any) => ({
@@ -163,7 +186,7 @@ export default function AIAgent() {
   const analyzeSelectedCampaign = () => {
     if (!selectedCampaign) return;
     setPanelOpen(false);
-    sendMessage(`Analise detalhadamente a seguinte campanha com base nos seus KPIs e me dê insights acionáveis:\n\n${buildCampaignContext(selectedCampaign)}`);
+    sendMessage(`Analise detalhadamente a seguinte campanha com base nos seus KPIs e me dê insights acionáveis:\n\n${buildCampaignContext(selectedCampaign, since, until)}`);
   };
 
   const sendMessage = (text: string) => {
@@ -173,7 +196,7 @@ export default function AIAgent() {
     setInput("");
     setIsTyping(true);
     const campaignCtx = selectedCampaign
-      ? `\n\nContexto da campanha selecionada:\n${buildCampaignContext(selectedCampaign)}` : "";
+      ? `\n\nContexto da campanha selecionada (período: ${since} a ${until}):\n${buildCampaignContext(selectedCampaign, since, until)}` : "";
     supabase.functions
       .invoke("ai-campaign-analyst", { body: { message: text, campaign_context: campaignCtx } })
       .then(({ data, error }) => {
@@ -199,35 +222,65 @@ export default function AIAgent() {
   }
 
   const statusColor = (s: string) =>
-    s === "active" ? "text-success" : s === "paused" ? "text-warning" : "text-muted-foreground";
+    s === "active" || s === "ACTIVE" ? "text-success" : s === "paused" || s === "PAUSED" ? "text-warning" : "text-muted-foreground";
 
   return (
     <div className="h-[calc(100dvh-3.5rem)] flex flex-col overflow-hidden">
 
-      {/* ── Mobile: top bar with campaign selector button ── */}
-      <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b border-border bg-surface-elevated flex-shrink-0">
-        <button
-          onClick={() => setPanelOpen(true)}
-          className="flex-1 flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2 text-left transition-colors"
-        >
-          <BarChart2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-          <span className="text-xs text-foreground truncate flex-1">
-            {selectedCampaign ? selectedCampaign.name : "Selecionar campanha…"}
-          </span>
-          {loadingCampaigns
-            ? <Loader2 className="w-3 h-3 text-muted-foreground animate-spin flex-shrink-0" />
-            : <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
-        </button>
-        {selectedCampaign && (
-          <Button
-            size="sm"
-            className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground flex-shrink-0 px-3"
-            onClick={analyzeSelectedCampaign}
-            disabled={isTyping}
+      {/* ── Mobile: top bar with campaign selector + date ── */}
+      <div className="md:hidden flex flex-col gap-2 px-3 py-2 border-b border-border bg-surface-elevated flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="flex-1 flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2 text-left transition-colors"
           >
-            {isTyping ? <Loader2 className="w-3 h-3 animate-spin" /> : "Analisar"}
-          </Button>
-        )}
+            <BarChart2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs text-foreground truncate flex-1">
+              {selectedCampaign ? selectedCampaign.name : "Selecionar campanha…"}
+            </span>
+            {loadingCampaigns
+              ? <Loader2 className="w-3 h-3 text-muted-foreground animate-spin flex-shrink-0" />
+              : <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+          </button>
+          {selectedCampaign && (
+            <Button
+              size="sm"
+              className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground flex-shrink-0 px-3"
+              onClick={analyzeSelectedCampaign}
+              disabled={isTyping}
+            >
+              {isTyping ? <Loader2 className="w-3 h-3 animate-spin" /> : "Analisar"}
+            </Button>
+          )}
+        </div>
+        {/* Date range row mobile */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {QUICK_PRESETS.map((p) => (
+            <button key={p.label}
+              onClick={() => setDateRange({ from: p.from, to: p.to })}
+              className={cn(
+                "text-[10px] px-2.5 py-1 rounded-md border whitespace-nowrap transition-all flex-shrink-0",
+                dateRange.from?.toDateString() === p.from.toDateString()
+                  ? "bg-primary/20 border-primary/40 text-primary"
+                  : "border-border text-muted-foreground"
+              )}>
+              {p.label}
+            </button>
+          ))}
+          <Popover open={calOpen} onOpenChange={setCalOpen}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-md border border-border text-muted-foreground whitespace-nowrap flex-shrink-0">
+                <CalendarIcon className="w-3 h-3" />
+                {dateLabel}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="range" selected={dateRange}
+                onSelect={(r) => { if (r) { setDateRange(r); if (r.from && r.to) setCalOpen(false); } }}
+                locale={ptBR} numberOfMonths={1} disabled={{ after: today }} className="pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* ── Mobile: bottom sheet panel ── */}
@@ -245,7 +298,6 @@ export default function AIAgent() {
               </button>
             </div>
 
-            {/* Campaign list */}
             <div className="space-y-1.5">
               {campaigns.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-4">
@@ -271,10 +323,9 @@ export default function AIAgent() {
               ))}
             </div>
 
-            {/* KPI preview of selected */}
             {selectedCampaign && (
               <div className="space-y-2 bg-muted/40 border border-border rounded-lg p-3">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">KPIs (30d)</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">KPIs — {dateLabel}</span>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { label: "Invest.", value: `R$ ${fmt(selectedCampaign.total_spend, 0)}` },
@@ -301,7 +352,6 @@ export default function AIAgent() {
               </div>
             )}
 
-            {/* Suggested questions */}
             <div>
               <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Perguntas Sugeridas</h4>
               <div className="space-y-1.5">
@@ -324,6 +374,43 @@ export default function AIAgent() {
         {/* Desktop side panel */}
         <div className="hidden md:flex w-72 flex-shrink-0 border-r border-border bg-surface-elevated flex-col overflow-y-auto">
           <div className="p-4 space-y-4">
+
+            {/* Date range picker */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Período</h3>
+              <div className="space-y-2">
+                <div className="flex gap-1 flex-wrap">
+                  {QUICK_PRESETS.map((p) => (
+                    <button key={p.label}
+                      onClick={() => setDateRange({ from: p.from, to: p.to })}
+                      className={cn(
+                        "text-[10px] px-2.5 py-1 rounded-md border whitespace-nowrap transition-all",
+                        dateRange.from?.toDateString() === p.from.toDateString()
+                          ? "bg-primary/20 border-primary/40 text-primary"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      )}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <Popover open={calOpen} onOpenChange={setCalOpen}>
+                  <PopoverTrigger asChild>
+                    <button className={cn(
+                      "w-full flex items-center gap-2 bg-muted border border-border hover:border-primary/40 rounded-lg px-3 py-2 text-left transition-colors"
+                    )}>
+                      <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs text-foreground truncate">{dateLabel}</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="range" selected={dateRange}
+                      onSelect={(r) => { if (r) { setDateRange(r); if (r.from && r.to) setCalOpen(false); } }}
+                      locale={ptBR} numberOfMonths={2} disabled={{ after: today }} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
             {/* Campaign selector */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -364,10 +451,10 @@ export default function AIAgent() {
               {selectedCampaign && (
                 <div className="mt-2 bg-muted/40 border border-border rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">KPIs (30d)</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">KPIs — {dateLabel}</span>
                     <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-                      selectedCampaign.status === "active" ? "bg-success/15 text-success" : "bg-warning/15 text-warning")}>
-                      {selectedCampaign.status === "active" ? "Ativa" : selectedCampaign.status === "paused" ? "Pausada" : "Encerrada"}
+                      (selectedCampaign.status === "active" || selectedCampaign.status === "ACTIVE") ? "bg-success/15 text-success" : "bg-warning/15 text-warning")}>
+                      {(selectedCampaign.status === "active" || selectedCampaign.status === "ACTIVE") ? "Ativa" : (selectedCampaign.status === "paused" || selectedCampaign.status === "PAUSED") ? "Pausada" : "Encerrada"}
                     </span>
                   </div>
                   {[
@@ -409,11 +496,13 @@ export default function AIAgent() {
 
         {/* Chat area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Campaign badge */}
+          {/* Campaign + period badge */}
           {selectedCampaign && (
-            <div className="hidden md:flex px-4 py-2 border-b border-border bg-primary/5 items-center gap-2">
+            <div className="hidden md:flex px-4 py-2 border-b border-border bg-primary/5 items-center gap-2 flex-wrap">
               <BarChart2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
               <span className="text-xs text-primary font-medium truncate">Analisando: {selectedCampaign.name}</span>
+              <span className="text-xs text-muted-foreground">·</span>
+              <span className="text-xs text-muted-foreground">{dateLabel}</span>
               <button className="ml-auto text-muted-foreground hover:text-foreground text-xs" onClick={() => setSelectedCampaign(null)}>✕</button>
             </div>
           )}
@@ -457,7 +546,7 @@ export default function AIAgent() {
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={selectedCampaign ? `Pergunte sobre "${selectedCampaign.name}"…` : "Pergunte sobre suas campanhas…"}
+                  placeholder={selectedCampaign ? `Pergunte sobre "${selectedCampaign.name}" (${dateLabel})…` : "Pergunte sobre suas campanhas…"}
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
                   disabled={isTyping}
                 />
@@ -469,7 +558,7 @@ export default function AIAgent() {
               </Button>
             </form>
             <p className="text-[10px] text-muted-foreground text-center mt-1.5">
-              {selectedCampaign ? `Contexto: ${selectedCampaign.name}` : "Alimentado por dados das suas contas conectadas"}
+              {selectedCampaign ? `Contexto: ${selectedCampaign.name} · ${dateLabel}` : "Alimentado por dados das suas contas conectadas"}
             </p>
           </div>
         </div>
