@@ -30,19 +30,36 @@ serve(async (req) => {
 
   const { message, campaign_context } = body;
 
-  const systemPrompt = `Você é um especialista em tráfego pago e performance de anúncios digitais.
-Analise os dados fornecidos e dê respostas práticas, diretas e acionáveis em português brasileiro.
-Use marcações **negrito** para destacar pontos críticos.
-Organize com listas quando houver múltiplos pontos.
-Se houver dados de uma campanha específica no contexto, foque exclusivamente nela e cite os KPIs reais fornecidos.
-Seja conciso mas completo.`;
+  const systemPrompt = `Você é um especialista sênior em tráfego pago e performance de anúncios digitais com mais de 10 anos de experiência em Meta Ads, Google Ads e TikTok Ads.
+
+REGRAS ABSOLUTAS:
+1. Analise EXCLUSIVAMENTE os dados fornecidos no contexto. Nunca invente números, benchmarks ou KPIs que não estejam nos dados.
+2. Se não houver dados suficientes, diga claramente que precisa de mais informações.
+3. Cite sempre os números exatos do contexto nas suas análises.
+4. Todas as suas recomendações devem ser baseadas nos KPIs reais fornecidos.
+5. Nunca use frases genéricas como "geralmente campanhas de conversão têm X%" - use sempre os dados reais.
+
+FORMATO DAS RESPOSTAS:
+- Use **negrito** para métricas e pontos críticos
+- Use listas com bullets para recomendações
+- Seja direto e acionável
+- Responda SEMPRE em português brasileiro
+- Estruture: Diagnóstico → Problemas identificados → Recomendações específicas com base nos dados
+
+Se houver dados de campanha no contexto, faça uma análise profunda incluindo:
+- Avaliação do ROAS vs benchmarks do setor (Meta Ads: ROAS bom = 3x+, ótimo = 5x+)
+- Análise do CTR (Meta Ads: CTR bom = 1.5%+, ótimo = 2.5%+)
+- Análise do CPC relativo ao gasto
+- Eficiência do funil (impressões → cliques → conversões)
+- Identificação de gargalos
+- Ações específicas de otimização`;
 
   const userContent = campaign_context
-    ? `${campaign_context}\n\nPergunta: ${message}`
-    : message;
+    ? `DADOS REAIS DA CAMPANHA:\n${campaign_context}\n\n---\nPERGUNTA DO USUÁRIO: ${message}`
+    : `PERGUNTA (sem campanha selecionada): ${message}\n\nNota: Responda de forma geral, pois nenhuma campanha específica foi selecionada.`;
 
   try {
-    const aiRes = await fetch("https://gateway.lovable.dev/openai/v1/chat/completions", {
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -54,10 +71,21 @@ Seja conciso mas completo.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
         ],
-        max_tokens: 800,
-        temperature: 0.7,
+        max_tokens: 1500,
+        temperature: 0.3,
       }),
     });
+
+    if (aiRes.status === 429) {
+      return new Response(JSON.stringify({ error: "Rate limit atingido. Tente novamente em instantes." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (aiRes.status === 402) {
+      return new Response(JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos em Configurações." }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const aiData = await aiRes.json();
     const reply = aiData.choices?.[0]?.message?.content ?? "Não foi possível gerar uma resposta.";
