@@ -20,25 +20,21 @@ const INTEGRATIONS = [
     name: "Meta Ads",
     color: "#1877F2",
     letter: "M",
-    accounts: [
-      { name: "Loja Exemplo BR", id: "act_1234567890", limit: "R$ 5.000/dia" },
-    ],
+    comingSoon: false,
   },
   {
     id: "google",
     name: "Google Ads",
     color: "#EA4335",
     letter: "G",
-    accounts: [
-      { name: "Loja Exemplo", id: "123-456-7890", limit: "R$ 3.000/dia" },
-    ],
+    comingSoon: true,
   },
   {
     id: "tiktok",
     name: "TikTok Ads",
     color: "#010101",
     letter: "T",
-    accounts: [],
+    comingSoon: true,
   },
 ];
 
