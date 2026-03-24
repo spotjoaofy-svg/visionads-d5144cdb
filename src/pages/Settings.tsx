@@ -304,42 +304,6 @@ export default function Settings() {
         </div>
       )}
 
-      {/* BILLING */}
-      {tab === "Cobrança" && (
-        <div className="space-y-4 animate-fade-up" style={{ animationDelay: "120ms" }}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {billingPlans.map((plan) => (
-              <div key={plan.id}
-                className={cn("relative bg-card border rounded-xl p-5 transition-all",
-                  "current" in plan && plan.current ? "border-primary" : "border-border"
-                )}>
-                {"current" in plan && plan.current && (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">
-                    ATUAL
-                  </span>
-                )}
-                <div className="font-semibold text-foreground mb-1">{plan.name}</div>
-                <div className="text-2xl font-bold text-primary mb-0.5">
-                  R$ {plan.price}<span className="text-sm text-muted-foreground font-normal">/mês</span>
-                </div>
-                <ul className="mt-3 space-y-1.5 mb-4">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-success flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                {!("current" in plan && plan.current) && (
-                  <Button size="sm" variant="outline" className="w-full h-8 text-xs border-border">
-                    {plan.price > 497 ? "Falar com vendas" : "Fazer upgrade"}
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ALERTS */}
       {tab === "Alertas" && (
         <div className="space-y-3 animate-fade-up" style={{ animationDelay: "120ms" }}>
