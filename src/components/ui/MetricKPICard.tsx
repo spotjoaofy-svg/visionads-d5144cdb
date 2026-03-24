@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, Check, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SparklineChart } from "./SparklineChart";
-import { generateSparkline } from "@/data/mockData";
+import { generateSparkline } from "@/data/mockData"; // fallback quando sparklineByMetric não é passado
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 export interface MetricOption {
@@ -17,6 +17,8 @@ interface MetricKPICardProps {
   metrics: MetricOption[];
   defaultMetric: string;
   data: Record<string, number>;
+  /** Séries diárias por chave de métrica (ex.: dados reais do Meta). Se omitido, usa sparkline sintético. */
+  sparklineByMetric?: Partial<Record<string, number[]>>;
   change?: number;
   icon?: React.ReactNode;
   className?: string;
@@ -28,6 +30,7 @@ export function MetricKPICard({
   metrics,
   defaultMetric,
   data,
+  sparklineByMetric,
   change,
   icon,
   className,
@@ -41,7 +44,18 @@ export function MetricKPICard({
   const rawValue = data[selected.key] ?? 0;
   const displayValue = selected.format(rawValue);
   const isPositive = (change ?? 0) >= 0;
-  const sparkData = generateSparkline(7, 20, 100);
+  const seriesRaw =
+    sparklineByMetric?.[selectedKey] ??
+    sparklineByMetric?.[defaultMetric] ??
+    [];
+  const sparkData =
+    sparklineByMetric !== undefined
+      ? (seriesRaw.length >= 2
+          ? seriesRaw.map((v) => ({ v }))
+          : seriesRaw.length === 1
+            ? [{ v: seriesRaw[0] }, { v: seriesRaw[0] }]
+            : [{ v: 0 }, { v: 0 }])
+      : generateSparkline(7, 20, 100);
 
   return (
     <div

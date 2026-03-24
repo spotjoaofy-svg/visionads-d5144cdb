@@ -25,11 +25,46 @@ export function useAccountInsights(adAccountId?: string, since?: string, until?:
   });
 }
 
-export function useCampaignInsights(adAccountId?: string, since?: string, until?: string) {
+export function useCampaignInsights(
+  adAccountId?: string,
+  since?: string,
+  until?: string,
+  opts?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ["fb", "campaign-insights", adAccountId, since, until],
     queryFn: () => fb.getCampaignInsights(adAccountId!, since!, until!),
-    enabled: !!adAccountId && !!since && !!until,
+    enabled: (opts?.enabled ?? true) && !!adAccountId && !!since && !!until,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+}
+
+export function useAdSetInsights(
+  adAccountId?: string,
+  since?: string,
+  until?: string,
+  opts?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: ["fb", "adset-insights", adAccountId, since, until],
+    queryFn: () => fb.getAdSetInsights(adAccountId!, since!, until!),
+    enabled: (opts?.enabled ?? true) && !!adAccountId && !!since && !!until,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+}
+
+export function useAdInsights(
+  adAccountId?: string,
+  since?: string,
+  until?: string,
+  opts?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: ["fb", "ad-insights", adAccountId, since, until],
+    queryFn: () => fb.getAdInsights(adAccountId!, since!, until!),
+    enabled: (opts?.enabled ?? true) && !!adAccountId && !!since && !!until,
     staleTime: 1000 * 60 * 5,
     retry: false,
   });

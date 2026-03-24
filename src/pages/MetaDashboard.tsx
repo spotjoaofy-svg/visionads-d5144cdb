@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format, subDays, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,13 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { MetricKPICard, type MetricOption } from "@/components/ui/MetricKPICard";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import {
@@ -13,12 +20,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as ReTooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { metaPlacementBreakdown, metaAgeBreakdown } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import {
   useAdAccounts,
   useAccountInsights,
   useCampaignInsights,
+  useAdSetInsights,
+  useAdInsights,
   useDailyInsights,
   useAgeBreakdown,
   usePlacementBreakdown,
@@ -149,11 +157,94 @@ function getVideoMetric(row: any, field: string): number {
   return Number(arr[0]?.value ?? 0);
 }
 
+function formatPublisherPlatform(p: string): string {
+  const map: Record<string, string> = {
+    facebook: "Facebook",
+    instagram: "Instagram",
+    audience_network: "Audience Network",
+    messenger: "Messenger",
+    whatsapp: "WhatsApp",
+    oculus: "Oculus",
+    unknown: "Desconhecido",
+  };
+  return map[p] ?? p.replace(/_/g, " ");
+}
+
+function formatDeviceLabel(d: string): string {
+  const map: Record<string, string> = {
+    desktop: "Desktop",
+    mobile: "Mobile",
+    iphone: "iPhone",
+    android_smartphone: "Android",
+    android_tablet: "Tablet Android",
+    ipad: "iPad",
+    ipod: "iPod",
+    other: "Outro",
+  };
+  return map[d] ?? d.replace(/_/g, " ");
+}
+
+type EntityKind = "campaign" | "adset" | "ad";
+
+function mapRowFromInsight(c: any, kind: EntityKind) {
+  const id =
+    kind === "campaign"
+      ? c.campaign_id ?? c.id
+      : kind === "adset"
+        ? c.adset_id ?? c.id
+        : c.ad_id ?? c.id;
+  const name =
+    kind === "campaign"
+      ? c.campaign_name ?? c.name ?? "—"
+      : kind === "adset"
+        ? c.adset_name ?? c.name ?? "—"
+        : c.ad_name ?? c.name ?? "—";
+  const rawStatus = c.effective_status ?? c.status ?? "";
+  const status = rawStatus ? String(rawStatus).toUpperCase() : "—";
+  return {
+    id: String(id ?? ""),
+    name,
+    status,
+    spend: Number(c.spend ?? 0),
+    impressions: Number(c.impressions ?? 0),
+    clicks: Number(c.clicks ?? 0),
+    unique_clicks: Number(c.unique_clicks ?? 0),
+    reach: Number(c.reach ?? 0),
+    ctr: Number(c.ctr ?? 0),
+    cpc: Number(c.cpc ?? 0),
+    cpm: Number(c.cpm ?? 0),
+    cpp: Number(c.cpp ?? 0),
+    roas: getRoas(c),
+    conversions: getConversions(c),
+    leads: getLeads(c),
+    frequency: Number(c.frequency ?? 0),
+    video_p100: getVideoMetric(c, "video_p100_watched_actions"),
+    outbound_clicks: getActionValue(c?.outbound_clicks ?? [], "outbound_click"),
+  };
+}
+
 function statusBadge(status: string) {
   const s = (status ?? "").toUpperCase();
+  if (!s || s === "—") return <StatusBadge severity="info" label="N/D" />;
   if (s === "ACTIVE") return <StatusBadge severity="success" label="Ativo" />;
   if (s === "PAUSED") return <StatusBadge severity="warning" label="Pausado" />;
-  return <StatusBadge severity="danger" label="Encerrado" />;
+  if (["COMPLETED", "ARCHIVED", "DELETED"].includes(s)) return <StatusBadge severity="danger" label="Encerrado" />;
+  return <StatusBadge severity="danger" label={s.length > 12 ? s.slice(0, 12) + "…" : s} />;
+}
+
+function ChartPlaceholder({ loading, isConnected }: { loading: boolean; isConnected: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex h-[160px] items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-[160px] items-center justify-center px-2 text-center text-[10px] text-muted-foreground">
+      {isConnected ? "Sem dados para o período selecionado" : "Conecte a conta Meta em Configurações"}
+    </div>
+  );
 }
 
 export default function MetaDashboard() {
@@ -162,6 +253,7 @@ export default function MetaDashboard() {
   const [chartMetric, setChartMetric] = useState("Spend");
   const [page, setPage] = useState(1);
   const [calOpen, setCalOpen] = useState(false);
+  const [selectedAccountKey, setSelectedAccountKey] = useState<string | undefined>(undefined);
   const PER_PAGE = 5;
 
   const today = new Date();
@@ -174,21 +266,69 @@ export default function MetaDashboard() {
   const until = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : format(today, "yyyy-MM-dd");
 
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAdAccounts();
-  const firstAccount = accounts?.[0];
-  const accountId = firstAccount?.account_id
-    ? `act_${firstAccount.account_id}`
-    : firstAccount?.id ?? undefined;
+
+  const accountKey = (a: { account_id?: string; id?: string }) =>
+    a.account_id ? `act_${a.account_id}` : a.id ?? "";
+
+  useEffect(() => {
+    if (!accounts?.length) return;
+    const valid = accounts.some((a) => accountKey(a) === selectedAccountKey);
+    if (!selectedAccountKey || !valid) {
+      setSelectedAccountKey(accountKey(accounts[0]));
+    }
+  }, [accounts, selectedAccountKey]);
+
+  const selectedAccount = useMemo(() => {
+    if (!accounts?.length) return undefined;
+    if (!selectedAccountKey) return accounts[0];
+    return accounts.find((a) => accountKey(a) === selectedAccountKey) ?? accounts[0];
+  }, [accounts, selectedAccountKey]);
+
+  const accountId = selectedAccount
+    ? selectedAccount.account_id
+      ? `act_${selectedAccount.account_id}`
+      : selectedAccount.id
+    : undefined;
+
+  const levelIsCampaigns = level === "Campanhas";
+  const levelIsAdSets = level === "Conjuntos";
+  const levelIsAds = level === "Anúncios";
 
   const { data: insights, isLoading: insightsLoading } = useAccountInsights(accountId, since, until);
-  const { data: campaignData, isLoading: campaignsLoading } = useCampaignInsights(accountId, since, until);
+  const { data: campaignData, isLoading: campaignsLoading } = useCampaignInsights(accountId, since, until, {
+    enabled: levelIsCampaigns,
+  });
+  const { data: adSetData, isLoading: adSetsLoading } = useAdSetInsights(accountId, since, until, {
+    enabled: levelIsAdSets,
+  });
+  const { data: adLevelData, isLoading: adsLoading } = useAdInsights(accountId, since, until, {
+    enabled: levelIsAds,
+  });
   const { data: dailyData, isLoading: dailyLoading } = useDailyInsights(accountId, since, until);
-  const { data: ageData } = useAgeBreakdown(accountId, since, until);
-  const { data: placementData } = usePlacementBreakdown(accountId, since, until);
-  const { data: genderData } = useGenderBreakdown(accountId, since, until);
-  const { data: deviceData } = useDeviceBreakdown(accountId, since, until);
+  const { data: ageData, isLoading: ageLoading } = useAgeBreakdown(accountId, since, until);
+  const { data: placementData, isLoading: placementLoading } = usePlacementBreakdown(accountId, since, until);
+  const { data: genderData, isLoading: genderLoading } = useGenderBreakdown(accountId, since, until);
+  const { data: deviceData, isLoading: deviceLoading } = useDeviceBreakdown(accountId, since, until);
 
   const isConnected = !accountsError && (accounts?.length ?? 0) > 0;
   const isLoading = accountsLoading || insightsLoading;
+
+  const entityKind: EntityKind = levelIsCampaigns ? "campaign" : levelIsAdSets ? "adset" : "ad";
+
+  const tableSourceRaw = levelIsCampaigns
+    ? campaignData
+    : levelIsAdSets
+      ? adSetData
+      : adLevelData;
+  const tableLoading = levelIsCampaigns
+    ? campaignsLoading
+    : levelIsAdSets
+      ? adSetsLoading
+      : adsLoading;
+
+  useEffect(() => {
+    setPage(1);
+  }, [level, accountId, since, until]);
 
   // ── Build full summary with ALL metrics ─────────────────────────────────────
   const summary = useMemo(() => {
@@ -282,29 +422,63 @@ export default function MetaDashboard() {
     }));
   }, [dailyData]);
 
+  /** Séries diárias reais para mini-gráficos dos KPIs */
+  const sparklineByMetric = useMemo((): Partial<Record<string, number[]>> => {
+    if (!Array.isArray(dailyData) || dailyData.length === 0) return {};
+    return {
+      spend: dailyData.map((d: any) => Number(d.spend ?? 0)),
+      cpc: dailyData.map((d: any) => Number(d.cpc ?? 0)),
+      cpm: dailyData.map((d: any) => Number(d.cpm ?? 0)),
+      cpp: dailyData.map((d: any) => Number(d.cpp ?? 0)),
+      cost_per_unique_click: dailyData.map((d: any) => Number(d.cost_per_unique_click ?? 0)),
+      cost_per_inline_link_click: dailyData.map((d: any) => Number(d.cost_per_inline_link_click ?? 0)),
+      cost_per_thruplay: dailyData.map((d: any) => getActionValue(d.cost_per_thruplay ?? [], "video_view")),
+      cpa: dailyData.map((d: any) => getCpa(d)),
+      cpl: dailyData.map((d: any) => getCpl(d)),
+      impressions: dailyData.map((d: any) => Number(d.impressions ?? 0)),
+      reach: dailyData.map((d: any) => Number(d.reach ?? 0)),
+      full_view_impressions: dailyData.map((d: any) => Number(d.full_view_impressions ?? 0)),
+      full_view_reach: dailyData.map((d: any) => Number(d.full_view_reach ?? 0)),
+      clicks: dailyData.map((d: any) => Number(d.clicks ?? 0)),
+      unique_clicks: dailyData.map((d: any) => Number(d.unique_clicks ?? 0)),
+      inline_link_clicks: dailyData.map((d: any) => Number(d.inline_link_clicks ?? 0)),
+      outbound_clicks: dailyData.map((d: any) => getActionValue(d.outbound_clicks ?? [], "outbound_click")),
+      conversions: dailyData.map((d: any) => getConversions(d)),
+      leads: dailyData.map((d: any) => getLeads(d)),
+      inline_post_engagement: dailyData.map((d: any) => Number(d.inline_post_engagement ?? 0)),
+      ctr: dailyData.map((d: any) => Number(d.ctr ?? 0)),
+      unique_ctr: dailyData.map((d: any) => Number(d.unique_ctr ?? 0)),
+      inline_link_click_ctr: dailyData.map((d: any) => Number(d.inline_link_click_ctr ?? 0)),
+      outbound_clicks_ctr: dailyData.map((d: any) => {
+        const arr = Array.isArray(d.outbound_clicks_ctr) ? d.outbound_clicks_ctr : [];
+        return arr.length > 0 ? Number(arr[0]?.value ?? 0) : 0;
+      }),
+      roas: dailyData.map((d: any) => getRoas(d)),
+      purchase_roas: dailyData.map((d: any) =>
+        Array.isArray(d.purchase_roas) && d.purchase_roas.length > 0 ? Number(d.purchase_roas[0]?.value ?? 0) : 0
+      ),
+      website_purchase_roas: dailyData.map((d: any) =>
+        Array.isArray(d.website_purchase_roas) && d.website_purchase_roas.length > 0
+          ? Number(d.website_purchase_roas[0]?.value ?? 0)
+          : 0
+      ),
+      frequency: dailyData.map((d: any) => Number(d.frequency ?? 0)),
+      video_plays: dailyData.map((d: any) => getVideoMetric(d, "video_play_actions")),
+      video_p25: dailyData.map((d: any) => getVideoMetric(d, "video_p25_watched_actions")),
+      video_p50: dailyData.map((d: any) => getVideoMetric(d, "video_p50_watched_actions")),
+      video_p75: dailyData.map((d: any) => getVideoMetric(d, "video_p75_watched_actions")),
+      video_p95: dailyData.map((d: any) => getVideoMetric(d, "video_p95_watched_actions")),
+      video_p100: dailyData.map((d: any) => getVideoMetric(d, "video_p100_watched_actions")),
+      video_30s: dailyData.map((d: any) => getVideoMetric(d, "video_30_sec_watched_actions")),
+      video_avg_time: dailyData.map((d: any) => getVideoMetric(d, "video_avg_time_watched_actions")),
+      social_spend: dailyData.map((d: any) => Number(d.social_spend ?? 0)),
+    };
+  }, [dailyData]);
+
   const campaigns = useMemo(() => {
-    if (!Array.isArray(campaignData)) return [];
-    return campaignData.map((c: any) => ({
-      id: c.campaign_id ?? c.id,
-      name: c.campaign_name ?? c.name ?? "—",
-      status: (c.effective_status ?? c.status ?? "UNKNOWN").toUpperCase(),
-      spend: Number(c.spend ?? 0),
-      impressions: Number(c.impressions ?? 0),
-      clicks: Number(c.clicks ?? 0),
-      unique_clicks: Number(c.unique_clicks ?? 0),
-      reach: Number(c.reach ?? 0),
-      ctr: Number(c.ctr ?? 0),
-      cpc: Number(c.cpc ?? 0),
-      cpm: Number(c.cpm ?? 0),
-      cpp: Number(c.cpp ?? 0),
-      roas: getRoas(c),
-      conversions: getConversions(c),
-      leads: getLeads(c),
-      frequency: Number(c.frequency ?? 0),
-      video_p100: getVideoMetric(c, "video_p100_watched_actions"),
-      outbound_clicks: getActionValue(c?.outbound_clicks ?? [], "outbound_click"),
-    }));
-  }, [campaignData]);
+    if (!Array.isArray(tableSourceRaw)) return [];
+    return tableSourceRaw.map((c: any) => mapRowFromInsight(c, entityKind));
+  }, [tableSourceRaw, entityKind]);
 
   const filteredCampaigns = campaigns.filter((c) => {
     if (statusFilter === "Todos") return true;
@@ -318,47 +492,39 @@ export default function MetaDashboard() {
   const paginated = filteredCampaigns.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const pieData = useMemo(() => {
-    if (Array.isArray(placementData) && placementData.length > 0) {
-      const total = placementData.reduce((s: number, d: any) => s + Number(d.spend ?? 0), 0);
-      return placementData.map((d: any) => ({
-        name: d.publisher_platform ?? "Outro",
-        value: total > 0 ? Math.round((Number(d.spend ?? 0) / total) * 100) : 0,
-      }));
-    }
-    return metaPlacementBreakdown;
+    if (!Array.isArray(placementData) || placementData.length === 0) return [];
+    const total = placementData.reduce((s: number, d: any) => s + Number(d.spend ?? 0), 0);
+    return placementData.map((d: any) => ({
+      name: formatPublisherPlatform(String(d.publisher_platform ?? "unknown")),
+      value: total > 0 ? Math.round((Number(d.spend ?? 0) / total) * 100) : 0,
+    }));
   }, [placementData]);
 
   const agePieData = useMemo(() => {
-    if (Array.isArray(ageData) && ageData.length > 0) {
-      return ageData.map((d: any) => ({
-        age: d.age ?? "?",
-        ctr: Number(d.ctr ?? 0),
-        spend: Number(d.spend ?? 0),
-      }));
-    }
-    return metaAgeBreakdown;
+    if (!Array.isArray(ageData) || ageData.length === 0) return [];
+    return ageData.map((d: any) => ({
+      age: d.age ?? "?",
+      ctr: Number(d.ctr ?? 0),
+      spend: Number(d.spend ?? 0),
+    }));
   }, [ageData]);
 
   const genderPieData = useMemo(() => {
-    if (Array.isArray(genderData) && genderData.length > 0) {
-      const total = genderData.reduce((s: number, d: any) => s + Number(d.spend ?? 0), 0);
-      return genderData.map((d: any) => ({
-        name: d.gender === "male" ? "Masculino" : d.gender === "female" ? "Feminino" : "Outro",
-        value: total > 0 ? Math.round((Number(d.spend ?? 0) / total) * 100) : 0,
-      }));
-    }
-    return [{ name: "Masculino", value: 55 }, { name: "Feminino", value: 42 }, { name: "Outro", value: 3 }];
+    if (!Array.isArray(genderData) || genderData.length === 0) return [];
+    const total = genderData.reduce((s: number, d: any) => s + Number(d.spend ?? 0), 0);
+    return genderData.map((d: any) => ({
+      name: d.gender === "male" ? "Masculino" : d.gender === "female" ? "Feminino" : "Outro",
+      value: total > 0 ? Math.round((Number(d.spend ?? 0) / total) * 100) : 0,
+    }));
   }, [genderData]);
 
   const devicePieData = useMemo(() => {
-    if (Array.isArray(deviceData) && deviceData.length > 0) {
-      const total = deviceData.reduce((s: number, d: any) => s + Number(d.impressions ?? 0), 0);
-      return deviceData.map((d: any) => ({
-        name: d.impression_device ?? "Outro",
-        value: total > 0 ? Math.round((Number(d.impressions ?? 0) / total) * 100) : 0,
-      }));
-    }
-    return [{ name: "mobile", value: 75 }, { name: "desktop", value: 20 }, { name: "tablet", value: 5 }];
+    if (!Array.isArray(deviceData) || deviceData.length === 0) return [];
+    const total = deviceData.reduce((s: number, d: any) => s + Number(d.impressions ?? 0), 0);
+    return deviceData.map((d: any) => ({
+      name: formatDeviceLabel(String(d.impression_device ?? "other")),
+      value: total > 0 ? Math.round((Number(d.impressions ?? 0) / total) * 100) : 0,
+    }));
   }, [deviceData]);
 
   const dateLabel = dateRange.from && dateRange.to
@@ -372,6 +538,10 @@ export default function MetaDashboard() {
     { label: "Mês",  from: startOfMonth(today), to: today },
   ];
 
+  const firstColLabel = level === "Campanhas" ? "Campanha" : level === "Conjuntos" ? "Conjunto" : "Anúncio";
+  const entityLabelPlural =
+    level === "Campanhas" ? "campanhas" : level === "Conjuntos" ? "conjuntos" : "anúncios";
+
   return (
     <div className="p-3 md:p-6 space-y-4 max-w-screen-2xl mx-auto">
       {/* Header */}
@@ -381,13 +551,34 @@ export default function MetaDashboard() {
             <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">M</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-lg md:text-xl font-semibold text-foreground">Meta Ads</h1>
-              {firstAccount && (
-                <p className="text-[10px] text-muted-foreground">{firstAccount.name ?? firstAccount.id}</p>
+              {selectedAccount && (
+                <p className="text-[10px] text-muted-foreground truncate">{selectedAccount.name ?? selectedAccount.id}</p>
               )}
             </div>
           </div>
+
+          {isConnected && accounts && accounts.length > 0 && (
+            <Select
+              value={selectedAccountKey ?? accountKey(accounts[0])}
+              onValueChange={setSelectedAccountKey}
+            >
+              <SelectTrigger className="h-8 w-[min(100%,220px)] text-xs border-border">
+                <SelectValue placeholder="Conta de anúncios" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => {
+                  const k = accountKey(a);
+                  return (
+                    <SelectItem key={k} value={k} className="text-xs">
+                      {a.name ?? k}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          )}
 
           {!isConnected && !accountsLoading && (
             <div className="flex items-center gap-1.5 text-xs text-warning bg-warning/10 border border-warning/20 rounded-lg px-3 py-1.5">
@@ -457,6 +648,7 @@ export default function MetaDashboard() {
               metrics={metricsForCard}
               defaultMetric={group.default}
               data={summary}
+              sparklineByMetric={sparklineByMetric}
               change={0}
               delay={i * 40}
               isLoading={isLoading}
@@ -529,14 +721,16 @@ export default function MetaDashboard() {
           </div>
         </div>
 
-        {campaignsLoading ? (
+        {tableLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : filteredCampaigns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
             <p className="text-sm text-muted-foreground">
-              {isConnected ? "Nenhuma campanha encontrada" : "Conecte sua conta Meta para ver campanhas reais"}
+              {isConnected
+                ? `Nenhum ${level === "Campanhas" ? "registro de campanha" : level === "Conjuntos" ? "registro de conjunto" : "registro de anúncio"} com dados neste período`
+                : "Conecte sua conta Meta para ver dados reais"}
             </p>
           </div>
         ) : (
@@ -546,7 +740,7 @@ export default function MetaDashboard() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Campanha", "Status", "Spend", "Impressões", "Cliques", "Únicos", "CTR", "CPC", "CPM", "ROAS", "Conv.", "Leads", "Freq.", "Vídeo 100%"].map((h) => (
+                    {[firstColLabel, "Status", "Spend", "Impressões", "Cliques", "Únicos", "CTR", "CPC", "CPM", "ROAS", "Conv.", "Leads", "Freq.", "Vídeo 100%"].map((h) => (
                       <th key={h} className="px-3 py-3 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
@@ -607,7 +801,7 @@ export default function MetaDashboard() {
 
             {pageCount > 1 && (
               <div className="flex items-center justify-between px-3 md:px-4 py-3 border-t border-border">
-                <span className="text-[11px] text-muted-foreground">{filteredCampaigns.length} campanhas · {page}/{pageCount}</span>
+                <span className="text-[11px] text-muted-foreground">{filteredCampaigns.length} {entityLabelPlural} · {page}/{pageCount}</span>
                 <div className="flex gap-1">
                   <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Ant.</Button>
                   <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Próx.</Button>
@@ -618,58 +812,74 @@ export default function MetaDashboard() {
         )}
       </div>
 
-      {/* Breakdown charts — 4 charts */}
+      {/* Breakdown charts — 4 charts (100% API) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "280ms" }}>
         <div className="bg-card border border-border rounded-xl p-3 md:p-4">
           <h3 className="text-xs font-semibold text-foreground mb-3">Spend por Plataforma</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
-                {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
-              <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
+          {placementLoading || pieData.length === 0 ? (
+            <ChartPlaceholder loading={placementLoading} isConnected={isConnected} />
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
+                  {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
+                <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-3 md:p-4">
           <h3 className="text-xs font-semibold text-foreground mb-3">CTR por Faixa Etária</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={agePieData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(240,10%,20%)" />
-              <XAxis dataKey="age" tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
-              <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${Number(v).toFixed(2)}%`, "CTR"]} />
-              <Bar dataKey="ctr" fill="#6366F1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {ageLoading || agePieData.length === 0 ? (
+            <ChartPlaceholder loading={ageLoading} isConnected={isConnected} />
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={agePieData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(240,10%,20%)" />
+                <XAxis dataKey="age" tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: "hsl(215,16%,57%)" }} tickLine={false} axisLine={false} />
+                <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${Number(v).toFixed(2)}%`, "CTR"]} />
+                <Bar dataKey="ctr" fill="#6366F1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-3 md:p-4">
           <h3 className="text-xs font-semibold text-foreground mb-3">Spend por Gênero</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={genderPieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
-                {genderPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
-              <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
+          {genderLoading || genderPieData.length === 0 ? (
+            <ChartPlaceholder loading={genderLoading} isConnected={isConnected} />
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie data={genderPieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
+                  {genderPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
+                <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-3 md:p-4">
           <h3 className="text-xs font-semibold text-foreground mb-3">Impressões por Dispositivo</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={devicePieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
-                {devicePieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
-              <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
+          {deviceLoading || devicePieData.length === 0 ? (
+            <ChartPlaceholder loading={deviceLoading} isConnected={isConnected} />
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie data={devicePieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
+                  {devicePieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <ReTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Share"]} />
+                <Legend formatter={(v) => <span className="text-[10px] text-muted-foreground">{v}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>

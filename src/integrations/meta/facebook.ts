@@ -116,47 +116,85 @@ export async function getInsights(
   return paginate(path, params);
 }
 
+/** Métricas alinhadas ao nível campanha / conjunto / anúncio (Marketing API insights) */
+const ENTITY_INSIGHT_FIELDS = [
+  "impressions",
+  "clicks",
+  "spend",
+  "reach",
+  "frequency",
+  "ctr",
+  "cpc",
+  "cpm",
+  "cpp",
+  "actions",
+  "action_values",
+  "cost_per_action_type",
+  "cost_per_unique_click",
+  "unique_clicks",
+  "unique_ctr",
+  "inline_link_clicks",
+  "inline_link_click_ctr",
+  "outbound_clicks",
+  "outbound_clicks_ctr",
+  "social_spend",
+  "purchase_roas",
+  "website_purchase_roas",
+  "video_play_actions",
+  "video_p25_watched_actions",
+  "video_p50_watched_actions",
+  "video_p75_watched_actions",
+  "video_p95_watched_actions",
+  "video_p100_watched_actions",
+  "video_30_sec_watched_actions",
+  "video_avg_time_watched_actions",
+  "cost_per_thruplay",
+].join(",");
+
+/**
+ * Série diária (account + time_increment=1): mesmas métricas de entidade + campos
+ * para funil, full view e custos por tipo de clique — alimenta gráficos e sparklines.
+ */
+const DAILY_INSIGHT_FIELDS = [
+  ENTITY_INSIGHT_FIELDS,
+  "full_view_impressions",
+  "full_view_reach",
+  "inline_post_engagement",
+  "cost_per_inline_link_click",
+  "cost_per_inline_post_engagement",
+  "cost_per_unique_action_type",
+  "website_ctr",
+].join(",");
+
 export async function getCampaignInsights(adAccountId: string, since: string, until: string) {
   const path = adAccountId.startsWith("act_")
     ? `${adAccountId}/insights`
     : `act_${adAccountId}/insights`;
   return paginate(path, {
     level: "campaign",
-    fields: [
-      "campaign_id",
-      "campaign_name",
-      "impressions",
-      "clicks",
-      "spend",
-      "reach",
-      "frequency",
-      "ctr",
-      "cpc",
-      "cpm",
-      "cpp",
-      "actions",
-      "action_values",
-      "cost_per_action_type",
-      "cost_per_unique_click",
-      "unique_clicks",
-      "unique_ctr",
-      "inline_link_clicks",
-      "inline_link_click_ctr",
-      "outbound_clicks",
-      "outbound_clicks_ctr",
-      "social_spend",
-      "purchase_roas",
-      "website_purchase_roas",
-      "video_play_actions",
-      "video_p25_watched_actions",
-      "video_p50_watched_actions",
-      "video_p75_watched_actions",
-      "video_p95_watched_actions",
-      "video_p100_watched_actions",
-      "video_30_sec_watched_actions",
-      "video_avg_time_watched_actions",
-      "cost_per_thruplay",
-    ].join(","),
+    fields: ["campaign_id", "campaign_name", ENTITY_INSIGHT_FIELDS].join(","),
+    time_range: JSON.stringify({ since, until }),
+  });
+}
+
+export async function getAdSetInsights(adAccountId: string, since: string, until: string) {
+  const path = adAccountId.startsWith("act_")
+    ? `${adAccountId}/insights`
+    : `act_${adAccountId}/insights`;
+  return paginate(path, {
+    level: "adset",
+    fields: ["adset_id", "adset_name", ENTITY_INSIGHT_FIELDS].join(","),
+    time_range: JSON.stringify({ since, until }),
+  });
+}
+
+export async function getAdInsights(adAccountId: string, since: string, until: string) {
+  const path = adAccountId.startsWith("act_")
+    ? `${adAccountId}/insights`
+    : `act_${adAccountId}/insights`;
+  return paginate(path, {
+    level: "ad",
+    fields: ["ad_id", "ad_name", ENTITY_INSIGHT_FIELDS].join(","),
     time_range: JSON.stringify({ since, until }),
   });
 }
@@ -167,29 +205,7 @@ export async function getDailyInsights(adAccountId: string, since: string, until
     : `act_${adAccountId}/insights`;
   return paginate(path, {
     level: "account",
-    fields: [
-      "impressions",
-      "clicks",
-      "spend",
-      "reach",
-      "frequency",
-      "ctr",
-      "cpc",
-      "cpm",
-      "actions",
-      "action_values",
-      "cost_per_action_type",
-      "unique_clicks",
-      "inline_link_clicks",
-      "outbound_clicks",
-      "purchase_roas",
-      "video_play_actions",
-      "video_p25_watched_actions",
-      "video_p50_watched_actions",
-      "video_p75_watched_actions",
-      "video_p100_watched_actions",
-      "video_30_sec_watched_actions",
-    ].join(","),
+    fields: DAILY_INSIGHT_FIELDS,
     time_range: JSON.stringify({ since, until }),
     time_increment: "1",
   });
@@ -248,6 +264,8 @@ export default {
   getCampaigns,
   getInsights,
   getCampaignInsights,
+  getAdSetInsights,
+  getAdInsights,
   getDailyInsights,
   getAgeBreakdown,
   getPlacementBreakdown,
