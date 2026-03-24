@@ -28,12 +28,23 @@ function formatDate(d: string) {
   return dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
+const DATE_RANGES_OPTS = [
+  { label: "7D", days: 7 },
+  { label: "14D", days: 14 },
+  { label: "30D", days: 30 },
+  { label: "90D", days: 90 },
+] as const;
+
 export default function Index() {
-  const [range, setRange] = useState<typeof DATE_RANGES[number]>("30D");
+  const today = new Date();
+  const [dateRange, setDateRange] = useState<DateRange>({ from: subDays(today, 29), to: today });
+  const [calOpen, setCalOpen] = useState(false);
   const [platformFilter, setPlatformFilter] = useState("all");
 
-  const rangeDays = range === "7D" ? 7 : range === "14D" ? 14 : range === "30D" ? 30 : 90;
-  const filteredData = dailyMetrics.slice(-Math.min(rangeDays, 30));
+  const days = dateRange.from && dateRange.to
+    ? Math.round((dateRange.to.getTime() - dateRange.from.getTime()) / 86400000) + 1
+    : 30;
+  const filteredData = dailyMetrics.slice(-Math.min(days, 30));
 
   const chartData = filteredData.map((d) => ({
     date: formatDate(d.date),
@@ -58,12 +69,16 @@ export default function Index() {
     fontSize: "11px",
   };
 
+  const dateLabel = dateRange.from && dateRange.to
+    ? `${format(dateRange.from, "dd/MM/yy")} – ${format(dateRange.to, "dd/MM/yy")}`
+    : "Selecionar período";
+
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 max-w-screen-2xl mx-auto">
       {/* Header */}
       <div className="animate-fade-up">
         <h1 className="text-lg md:text-2xl font-semibold text-foreground">
-          {greeting}, Ana 👋
+          {greeting} 👋
         </h1>
         <p className="text-xs md:text-sm text-muted-foreground mt-0.5 capitalize">{dateStr}</p>
       </div>
@@ -113,20 +128,32 @@ export default function Index() {
         <div className="flex flex-col gap-3 mb-3">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Investimento vs ROAS</h2>
-            <p className="text-[10px] text-muted-foreground">Últimos {rangeDays} dias</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Range pills */}
-            <div className="flex bg-muted rounded-lg p-0.5 gap-0.5">
-              {DATE_RANGES.map((r) => (
-                <button key={r} onClick={() => setRange(r)}
-                  className={cn("text-[11px] px-2.5 py-1 rounded-md transition-all font-medium",
-                    range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Quick presets */}
+            <div className="flex bg-muted rounded-lg p-0.5 gap-0.5 overflow-x-auto no-scrollbar">
+              {DATE_RANGES_OPTS.map((r) => (
+                <button key={r.label} onClick={() => setDateRange({ from: subDays(today, r.days - 1), to: today })}
+                  className={cn("text-[11px] px-2.5 py-1 rounded-md transition-all font-medium whitespace-nowrap",
+                    days === r.days ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                   )}>
-                  {r}
+                  {r.label}
                 </button>
               ))}
             </div>
+            {/* Calendar picker */}
+            <Popover open={calOpen} onOpenChange={setCalOpen}>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all whitespace-nowrap">
+                  <CalendarIcon className="w-3 h-3" />{dateLabel}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="range" selected={dateRange}
+                  onSelect={(r) => { if (r) { setDateRange(r); if (r.from && r.to) setCalOpen(false); } }}
+                  locale={ptBR} numberOfMonths={2} disabled={{ after: today }} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
             {/* Platform filter */}
             <div className="flex bg-muted rounded-lg p-0.5 gap-0.5 flex-wrap">
               {["all", "meta", "google", "tiktok"].map((pl) => (
