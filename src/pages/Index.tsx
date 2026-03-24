@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import {
   DollarSign, Target, TrendingUp, Megaphone,
   ExternalLink, AlertTriangle, CheckCircle, XCircle, Clock, CalendarIcon,
-  Construction,
+  Construction, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as ReTooltip, ResponsiveContainer,
 } from "recharts";
-import { activeAlerts } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { useAdAccounts, useDailyInsights, useAccountInsights } from "@/hooks/useMeta";
+import { useMetaAlerts, buildAdManagerUrl } from "@/hooks/useMetaAlerts";
 
 function formatBRL(n: number) {
   return `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}`;
@@ -39,6 +39,9 @@ function getConversions(row: any): number {
 }
 
 function getRoas(row: any): number {
+  if (Array.isArray(row?.purchase_roas) && row.purchase_roas.length > 0) {
+    return Number(row.purchase_roas[0]?.value ?? 0);
+  }
   if (!row?.action_values) return 0;
   const rv = row.action_values.find((a: any) => a.action_type === "purchase" || a.action_type === "offsite_conversion.fb_pixel_purchase");
   const spend = Number(row.spend ?? 0);
@@ -68,6 +71,9 @@ export default function Index() {
   const { data: insights } = useAccountInsights(accountId, since, until);
   const { data: dailyData } = useDailyInsights(accountId, since, until);
 
+  // Real alerts from Meta API KPIs
+  const metaAlerts = useMetaAlerts(accountId);
+
   const summary = useMemo(() => {
     const arr = Array.isArray(insights) ? insights : [];
     if (arr.length === 0) return { impressions: 0, clicks: 0, spend: 0, reach: 0, ctr: 0, cpc: 0, roas: 0, conversions: 0 };
@@ -90,7 +96,6 @@ export default function Index() {
     return dailyData.map((d: any) => ({
       date: d.date_start ? format(new Date(d.date_start + "T12:00:00"), "dd/MM") : "",
       "Meta Spend": Number(d.spend ?? 0),
-      "Meta ROAS": Number(d.ctr ?? 0),
     }));
   }, [dailyData]);
 
@@ -110,6 +115,9 @@ export default function Index() {
   const dateLabel = dateRange.from && dateRange.to
     ? `${format(dateRange.from, "dd/MM/yy")} – ${format(dateRange.to, "dd/MM/yy")}`
     : "Selecionar período";
+
+  const dangerCount = metaAlerts.filter(a => a.severity === "danger").length;
+  const alertBadgeCount = metaAlerts.length;
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 max-w-screen-2xl mx-auto">
@@ -219,7 +227,6 @@ export default function Index() {
             <h2 className="text-sm font-semibold text-foreground">Investimento Meta (Período)</h2>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
-            {/* Quick presets */}
             <div className="flex bg-muted rounded-lg p-0.5 gap-0.5 overflow-x-auto no-scrollbar">
               {DATE_RANGES_OPTS.map((r) => (
                 <button key={r.label} onClick={() => setDateRange({ from: subDays(today, r.days - 1), to: today })}
@@ -230,7 +237,6 @@ export default function Index() {
                 </button>
               ))}
             </div>
-            {/* Calendar picker */}
             <Popover open={calOpen} onOpenChange={setCalOpen}>
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all whitespace-nowrap">
@@ -263,47 +269,78 @@ export default function Index() {
         )}
       </div>
 
-      {/* Alerts */}
+      {/* Alerts — Real Meta KPI alerts */}
       <div className="bg-card border border-border rounded-xl p-3 md:p-4 animate-fade-up" style={{ animationDelay: "400ms" }}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-foreground">Alertas Ativos</h2>
-          <Badge variant="secondary" className="text-xs bg-destructive/15 text-destructive border-0">
-            {activeAlerts.length} novos
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Bell className="w-3.5 h-3.5 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Alertas Ativos</h2>
+          </div>
+          {alertBadgeCount > 0 && (
+            <Badge variant="secondary" className={cn(
+              "text-xs border-0",
+              dangerCount > 0 ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"
+            )}>
+              {alertBadgeCount} {alertBadgeCount === 1 ? "alerta" : "alertas"}
+            </Badge>
+          )}
         </div>
-        <div className="space-y-2">
-          {activeAlerts.map((alert) => (
-            <div key={alert.id}
-              className={cn(
-                "flex items-start gap-2.5 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/30",
-                alert.severity === "danger" && "border-destructive/20 bg-destructive/5",
-                alert.severity === "warning" && "border-warning/20 bg-warning/5",
-                alert.severity === "success" && "border-success/20 bg-success/5"
-              )}
-            >
-              <div className="flex-shrink-0 mt-0.5">
-                {alert.severity === "danger" && <XCircle className="w-3.5 h-3.5 text-destructive" />}
-                {alert.severity === "warning" && <AlertTriangle className="w-3.5 h-3.5 text-warning" />}
-                {alert.severity === "success" && <CheckCircle className="w-3.5 h-3.5 text-success" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-foreground">{alert.title}</div>
-                <div className="text-[11px] text-muted-foreground truncate">{alert.description}</div>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5" /> {alert.time}
-                  </span>
-                  <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                    {alert.platform}
-                  </span>
+
+        {!isMetaConnected ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+            <Bell className="w-8 h-8 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">Conecte sua conta Meta para ver alertas reais</p>
+          </div>
+        ) : metaAlerts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+            <CheckCircle className="w-8 h-8 text-success/50" />
+            <p className="text-sm text-muted-foreground">Tudo certo! Nenhum alerta nos últimos 7 dias.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {metaAlerts.map((alert) => {
+              const adMgrUrl = buildAdManagerUrl(alert.adAccountId, alert.campaignId);
+              return (
+                <div key={alert.id}
+                  className={cn(
+                    "flex items-start gap-2.5 p-2.5 md:p-3 rounded-lg border transition-all hover:border-primary/30",
+                    alert.severity === "danger" && "border-destructive/20 bg-destructive/5",
+                    alert.severity === "warning" && "border-warning/20 bg-warning/5",
+                    alert.severity === "success" && "border-success/20 bg-success/5"
+                  )}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {alert.severity === "danger" && <XCircle className="w-3.5 h-3.5 text-destructive" />}
+                    {alert.severity === "warning" && <AlertTriangle className="w-3.5 h-3.5 text-warning" />}
+                    {alert.severity === "success" && <CheckCircle className="w-3.5 h-3.5 text-success" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-foreground">{alert.title}</div>
+                    <div className="text-[11px] text-muted-foreground">{alert.description}</div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" /> {alert.time}
+                      </span>
+                      <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                        {alert.platform}
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href={adMgrUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Ver no Gerenciador de Anúncios"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-              </div>
-              <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground flex-shrink-0">
-                <ExternalLink className="w-3 h-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
