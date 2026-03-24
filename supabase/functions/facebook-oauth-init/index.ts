@@ -22,12 +22,15 @@ serve(async (req) => {
   }
 
   let workspaceId = '';
+  let appOrigin = '';
   try {
     const body = await req.json();
     workspaceId = body.workspace_id ?? '';
+    /** Origem do app (ex.: http://localhost:8080) para o callback redirecionar o popup ao mesmo domínio */
+    appOrigin = typeof body.app_origin === 'string' ? body.app_origin.trim() : '';
   } catch (_) { /* no body */ }
 
-  const state = btoa(JSON.stringify({ workspace_id: workspaceId, ts: Date.now() }));
+  const state = btoa(JSON.stringify({ workspace_id: workspaceId, ts: Date.now(), app_origin: appOrigin }));
 
   const scopes = [
     'ads_read',

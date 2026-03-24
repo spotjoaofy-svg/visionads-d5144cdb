@@ -1,6 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/** Origem permitida para redirect pós-OAuth (evita open redirect) */
+function resolveClientOrigin(stateParam: string | null): string {
+  const fallback = (Deno.env.get("APP_ORIGIN") ?? "https://visionads.lovable.app").replace(/\/$/, "");
+  try {
+    if (!stateParam) return fallback;
+    const decoded = JSON.parse(atob(stateParam)) as { app_origin?: string };
+    const raw = decoded.app_origin?.trim();
+    if (!raw || !/^https?:\/\//i.test(raw)) return fallback;
+    const u = new URL(raw);
+    const host = u.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return `${u.protocol}//${u.host}`;
+    if (host.endsWith(".lovable.app") || host === "lovable.app") return `${u.protocol}//${u.host}`;
+    const allowed = Deno.env.get("APP_ORIGIN")?.trim().replace(/\/$/, "");
+    if (allowed) {
+      try {
+        const au = new URL(allowed);
+        if (u.origin === au.origin) return `${u.protocol}//${u.host}`;
+      } catch {
+        /* ignore */
+      }
+    }
+    const extras = (Deno.env.get("ALLOWED_OAUTH_ORIGINS") ?? "").split(",");
+    for (const e of extras) {
+      const eb = e.trim().replace(/\/$/, "");
+      if (!eb) continue;
+      try {
+        const eu = new URL(eb);
+        if (u.origin === eu.origin) return `${u.protocol}//${u.host}`;
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
 serve(async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
@@ -12,7 +50,8 @@ serve(async (req) => {
   const APP_ID = Deno.env.get("FACEBOOK_APP_ID")!;
   const APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET")!;
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
-  const appOrigin = "https://visionads.lovable.app";
+
+  const appOrigin = resolveClientOrigin(state);
   const callbackUrl = `${appOrigin}/fb-callback`;
 
   if (error) {
@@ -24,7 +63,7 @@ serve(async (req) => {
 
   let workspaceId = "";
   try {
-    const decoded = JSON.parse(atob(state ?? ""));
+    const decoded = JSON.parse(atob(state ?? "")) as { workspace_id?: string };
     workspaceId = decoded.workspace_id ?? "";
   } catch (_) {
     return Response.redirect(`${callbackUrl}?fb_error=invalid_state`, 302);
@@ -186,5 +225,11 @@ serve(async (req) => {
     }
   }
 
-  return Response.redirect(`${callbackUrl}?fb_success=1`, 302);
+  // Query string: alguns browsers removem # do Location em 302; o /fb-callback lê access_token e grava no localStorage
+  const qs = new URLSearchParams({
+    fb_success: "1",
+    access_token: accessToken,
+  });
+  return Response.redirect(`${callbackUrl}?${qs.toString()}`, 302);
 });
+

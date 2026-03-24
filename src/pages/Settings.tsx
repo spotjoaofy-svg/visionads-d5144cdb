@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ const INTEGRATIONS = [
 ];
 
 export default function Settings() {
+  const queryClient = useQueryClient();
   const { workspace } = useApp();
   const [tab, setTab] = useState("Integrações");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -60,6 +62,7 @@ export default function Settings() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("fb_success")) {
       setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["fb"] });
       window.history.replaceState({}, "", window.location.pathname);
       setTab("Integrações");
     } else if (params.get("fb_error")) {
@@ -71,7 +74,7 @@ export default function Settings() {
       const t = setTimeout(() => setFbToast(null), 5000);
       return () => clearTimeout(t);
     }
-  }, [fbToast]);
+  }, [fbToast, queryClient]);
 
   const handleConnectFacebook = async () => {
     setFbLoading(true);
@@ -84,7 +87,7 @@ export default function Settings() {
 
       const workspaceId = wsData?.id ?? "";
       const { data, error } = await supabase.functions.invoke("facebook-oauth-init", {
-        body: { workspace_id: workspaceId },
+        body: { workspace_id: workspaceId, app_origin: window.location.origin },
       });
       if (error || !data?.auth_url) throw new Error(error?.message ?? "Falha ao iniciar OAuth");
 
@@ -111,6 +114,14 @@ export default function Settings() {
         window.removeEventListener("message", onMessage);
         setFbLoading(false);
         if (ev.data.status === "success") {
+          if (typeof ev.data.access_token === "string" && ev.data.access_token) {
+            try {
+              localStorage.setItem("facebook_access_token", ev.data.access_token);
+            } catch {
+              /* ignore */
+            }
+          }
+          queryClient.invalidateQueries({ queryKey: ["fb"] });
           setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
         } else {
           setFbToast({ type: "error", msg: `Erro ao conectar: ${ev.data.error ?? "desconhecido"}` });
