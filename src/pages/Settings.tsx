@@ -50,8 +50,16 @@ export default function Settings() {
   const [rules, setRules] = useState(alertRules);
   const [fbLoading, setFbLoading] = useState(false);
   const [fbToast, setFbToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  /** Sincroniza com localStorage — a API pode falhar mas o token já indica sessão Meta */
+  const [hasFbToken, setHasFbToken] = useState(
+    () => typeof window !== "undefined" && !!localStorage.getItem("facebook_access_token")
+  );
 
-  const { data: accounts } = useAdAccounts();
+  const { data: accounts, error: accountsError, isLoading: accountsLoading, refetch: refetchAccounts } = useAdAccounts();
+
+  useEffect(() => {
+    setHasFbToken(!!localStorage.getItem("facebook_access_token"));
+  }, [fbToast]);
 
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r));
@@ -61,6 +69,7 @@ export default function Settings() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("fb_success")) {
+      setHasFbToken(!!localStorage.getItem("facebook_access_token"));
       setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ["fb"] });
       window.history.replaceState({}, "", window.location.pathname);
@@ -121,6 +130,7 @@ export default function Settings() {
               /* ignore */
             }
           }
+          setHasFbToken(!!localStorage.getItem("facebook_access_token"));
           queryClient.invalidateQueries({ queryKey: ["fb"] });
           setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
         } else {
@@ -135,6 +145,9 @@ export default function Settings() {
           clearInterval(pollClosed);
           window.removeEventListener("message", onMessage);
           setFbLoading(false);
+          const tokenNow = !!localStorage.getItem("facebook_access_token");
+          setHasFbToken(tokenNow);
+          if (tokenNow) queryClient.invalidateQueries({ queryKey: ["fb"] });
         }
       }, 500);
     } catch (e: unknown) {
@@ -208,8 +221,7 @@ export default function Settings() {
       {tab === "Integrações" && (
         <div className="space-y-4 animate-fade-up" style={{ animationDelay: "120ms" }}>
           {INTEGRATIONS.map((platform) => {
-            const isMetaConnected = platform.id === "meta" && (accounts?.length ?? 0) > 0;
-            const metaAccountName = platform.id === "meta" && accounts?.[0]?.name ? accounts[0].name : null;
+            const metaHasAccounts = platform.id === "meta" && (accounts?.length ?? 0) > 0;
             return (
               <div key={platform.id} className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="flex items-center gap-3 p-4 border-b border-border">
@@ -230,7 +242,11 @@ export default function Settings() {
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {platform.id === "meta"
-                        ? isMetaConnected ? `${accounts!.length} conta(s) conectada(s)` : "Não conectado"
+                        ? metaHasAccounts
+                          ? `${accounts!.length} conta(s) conectada(s)`
+                          : hasFbToken
+                            ? "Sessão Meta ativa — carregando ou sem contas de anúncios"
+                            : "Não conectado"
                         : "Não disponível ainda"
                       }
                     </div>
@@ -249,7 +265,7 @@ export default function Settings() {
                   )}
                 </div>
 
-                {platform.id === "meta" && isMetaConnected ? (
+                {platform.id === "meta" && metaHasAccounts ? (
                   <div className="divide-y divide-border">
                     {accounts!.map((acc: any) => (
                       <div key={acc.id} className="flex items-center justify-between px-4 py-3">
@@ -260,6 +276,38 @@ export default function Settings() {
                         <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Conectado</Badge>
                       </div>
                     ))}
+                  </div>
+                ) : platform.id === "meta" && hasFbToken ? (
+                  <div className="px-4 py-4 space-y-3 border-t border-border">
+                    {accountsLoading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                        Carregando contas de anúncios…
+                      </div>
+                    )}
+                    {accountsError && (
+                      <div className="flex flex-col gap-2 text-sm">
+                        <span className="text-destructive">
+                          Não foi possível listar as contas:{" "}
+                          {accountsError instanceof Error ? accountsError.message : "Erro na API Meta"}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-fit h-8 text-xs"
+                          onClick={() => refetchAccounts()}
+                        >
+                          Tentar novamente
+                        </Button>
+                      </div>
+                    )}
+                    {!accountsLoading && !accountsError && (accounts?.length ?? 0) === 0 && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Sessão Meta ativa, mas nenhuma conta de anúncios foi retornada. Confira permissões de anúncios
+                        no Meta e se o usuário tem acesso a contas no Business Manager.
+                      </p>
+                    )}
                   </div>
                 ) : platform.id === "meta" ? (
                   <div className="flex items-center justify-center p-6 text-sm text-muted-foreground">
