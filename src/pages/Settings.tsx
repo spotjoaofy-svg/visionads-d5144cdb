@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Check, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Check, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { teamMembers, alertRules, billingPlans } from "@/data/mockData";
+import { teamMembers, alertRules } from "@/data/mockData";
+import { useAdAccounts } from "@/hooks/useMeta";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/context/AppContext";
