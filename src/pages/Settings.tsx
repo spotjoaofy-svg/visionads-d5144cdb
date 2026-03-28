@@ -12,7 +12,7 @@ import { teamMembers, alertRules } from "@/data/mockData";
 import { useAdAccounts, notifyTokenChanged } from "@/hooks/useMeta";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useApp } from "@/context/AppContext";
+
 
 const SETTINGS_TABS = ["Workspace", "Integrações", "Equipe", "Alertas"];
 
@@ -42,7 +42,7 @@ const INTEGRATIONS = [
 
 export default function Settings() {
   const queryClient = useQueryClient();
-  const { workspace } = useApp();
+  
   const [tab, setTab] = useState("Integrações");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -88,15 +88,8 @@ export default function Settings() {
   const handleConnectFacebook = async () => {
     setFbLoading(true);
     try {
-      const { data: wsData } = await supabase
-        .from("workspaces")
-        .select("id")
-        .eq("name", workspace)
-        .maybeSingle();
-
-      const workspaceId = wsData?.id ?? "";
       const { data, error } = await supabase.functions.invoke("facebook-oauth-init", {
-        body: { workspace_id: workspaceId, app_origin: window.location.origin },
+        body: { app_origin: window.location.origin },
       });
       if (error || !data?.auth_url) throw new Error(error?.message ?? "Falha ao iniciar OAuth");
 
