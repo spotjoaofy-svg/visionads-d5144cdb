@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { teamMembers, alertRules } from "@/data/mockData";
-import { useAdAccounts } from "@/hooks/useMeta";
+import { useAdAccounts, notifyTokenChanged } from "@/hooks/useMeta";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/context/AppContext";
