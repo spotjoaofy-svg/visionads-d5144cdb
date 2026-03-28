@@ -153,7 +153,11 @@ export default function Settings() {
           setFbLoading(false);
           const tokenNow = !!localStorage.getItem("facebook_access_token");
           setHasFbToken(tokenNow);
-          if (tokenNow) queryClient.invalidateQueries({ queryKey: ["fb"] });
+          if (tokenNow) {
+            notifyTokenChanged();
+            queryClient.removeQueries({ queryKey: ["fb"] });
+            setTimeout(() => queryClient.invalidateQueries({ queryKey: ["fb"] }), 100);
+          }
         }
       }, 500);
     } catch (e: unknown) {
