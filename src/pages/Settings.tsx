@@ -122,7 +122,7 @@ export default function Settings() {
         if (ev.data?.type !== "fb_oauth") return;
         window.removeEventListener("message", onMessage);
         setFbLoading(false);
-        if (ev.data.status === "success") {
+        if (ev.data.status === "success" || ev.data.status === "code") {
           if (typeof ev.data.access_token === "string" && ev.data.access_token) {
             try {
               localStorage.setItem("facebook_access_token", ev.data.access_token);
@@ -131,7 +131,13 @@ export default function Settings() {
             }
           }
           setHasFbToken(!!localStorage.getItem("facebook_access_token"));
-          queryClient.invalidateQueries({ queryKey: ["fb"] });
+          notifyTokenChanged();
+          // Force remove all cached fb queries so they re-run with the new token
+          queryClient.removeQueries({ queryKey: ["fb"] });
+          // Small delay to let React re-render with new token before refetching
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["fb"] });
+          }, 100);
           setFbToast({ type: "success", msg: "Conta Meta conectada com sucesso!" });
         } else {
           setFbToast({ type: "error", msg: `Erro ao conectar: ${ev.data.error ?? "desconhecido"}` });
