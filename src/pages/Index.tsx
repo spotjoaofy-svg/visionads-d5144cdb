@@ -18,7 +18,7 @@ import {
   Tooltip as ReTooltip, ResponsiveContainer,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { useAdAccounts, useDailyInsights, useAccountInsights } from "@/hooks/useMeta";
+import { useAdAccounts, useDailyInsights, useAccountInsights, useIsMetaConnected } from "@/hooks/useMeta";
 import { useMetaAlerts, buildAdManagerUrl } from "@/hooks/useMetaAlerts";
 
 function formatBRL(n: number) {
@@ -66,7 +66,8 @@ export default function Index() {
     ? `act_${firstAccount.account_id}`
     : firstAccount?.id ?? undefined;
 
-  const isMetaConnected = !accountsError && (accounts?.length ?? 0) > 0;
+  const isMetaTokenPresent = useIsMetaConnected();
+  const isMetaConnected = isMetaTokenPresent && !accountsError && (accounts?.length ?? 0) > 0;
 
   const { data: insights } = useAccountInsights(accountId, since, until);
   const { data: dailyData } = useDailyInsights(accountId, since, until);
