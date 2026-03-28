@@ -12,7 +12,7 @@ function resolveClientOrigin(stateParam: string | null): string {
     const u = new URL(raw);
     const host = u.hostname;
     if (host === "localhost" || host === "127.0.0.1") return `${u.protocol}//${u.host}`;
-    if (host.endsWith(".lovable.app") || host === "lovable.app") return `${u.protocol}//${u.host}`;
+    if (host.endsWith(".lovable.app") || host === "lovable.app" || host.endsWith(".lovableproject.com") || host === "lovableproject.com") return `${u.protocol}//${u.host}`;
     const allowed = Deno.env.get("APP_ORIGIN")?.trim().replace(/\/$/, "");
     if (allowed) {
       try {
