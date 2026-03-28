@@ -249,34 +249,8 @@ export default function Index() {
 
       {/* Chart — Meta only */}
       <div className="bg-card border border-border rounded-xl p-3 md:p-4 animate-fade-up" style={{ animationDelay: "300ms" }}>
-        <div className="flex flex-col gap-3 mb-3">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Investimento Meta (Período)</h2>
-          </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <div className="flex bg-muted rounded-lg p-0.5 gap-0.5 overflow-x-auto no-scrollbar">
-              {DATE_RANGES_OPTS.map((r) => (
-                <button key={r.label} onClick={() => setDateRange({ from: subDays(today, r.days - 1), to: today })}
-                  className={cn("text-[11px] px-2.5 py-1 rounded-md transition-all font-medium whitespace-nowrap",
-                    days === r.days ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}>
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            <Popover open={calOpen} onOpenChange={setCalOpen}>
-              <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all whitespace-nowrap">
-                  <CalendarIcon className="w-3 h-3" />{dateLabel}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="range" selected={dateRange}
-                  onSelect={(r) => { if (r) { setDateRange(r); if (r.from && r.to) setCalOpen(false); } }}
-                  locale={ptBR} numberOfMonths={2} disabled={{ after: today }} className="pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-          </div>
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-foreground">Investimento Meta (Período)</h2>
         </div>
 
         {chartData.length === 0 ? (
