@@ -49,7 +49,8 @@ export default function FacebookCallback() {
       return;
     }
 
-    // Caso código (code) recebido, envie para o opener para trocar no servidor
+    // If we received a code, the edge function should have exchanged it already
+    // and redirected with access_token. If we still only have code, pass it to opener.
     if (code) {
       const payload = { type: "fb_oauth", status: "code", code };
       if (window.opener) {
@@ -59,7 +60,7 @@ export default function FacebookCallback() {
           window.opener.postMessage(payload, "*");
         }
       }
-      setTimeout(() => window.close(), 300);
+      setTimeout(() => window.close(), 600);
       return;
     }
 
